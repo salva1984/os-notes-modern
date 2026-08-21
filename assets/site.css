@@ -925,6 +925,17 @@ font {
   padding: var(--space-lg);
 }
 
+.search-dialog__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.search-dialog__close {
+  flex: 0 0 auto;
+}
+
 .search-dialog h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -953,6 +964,13 @@ font {
 
 .search-results li {
   border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.search-results .search-empty {
+  padding-block: var(--space-sm);
+  color: var(--color-ink-faint);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
 }
 
 .search-results a {

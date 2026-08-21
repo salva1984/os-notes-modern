@@ -2,7 +2,7 @@
 
 // This catalog is the single source for the header search, rail, and chapter
 // pagination. The filenames intentionally match the original static pages.
-const chapters = [
+const CHAPTERS = [
   {
     group: "Preparation",
     number: "0",
@@ -104,15 +104,25 @@ const chapters = [
 // Figures stay hosted by the original course site. The shell rewrites their
 // relative source paths at runtime so the repository contains no image copy.
 const ORIGINAL_ROOT = "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/";
+const THEME_STORAGE_KEY = "os-notes-theme";
 
 // GitHub Pages serves these documents directly, so navigation is resolved from
 // the filename rather than from a router or a build-time manifest.
-const currentFile = () => {
+const getPageFilename = () => {
   const file = window.location.pathname.split("/").pop();
   return file || "index.html";
 };
 
-const isIndex = currentFile() === "index.html";
+// Derive the page facts once so the rest of the shell does not read the URL
+// independently and accidentally work with different page states.
+const getPageContext = () => {
+  const fileName = getPageFilename();
+  return {
+    fileName,
+    isIndex: fileName === "index.html",
+    chapter: CHAPTERS.find((chapter) => chapter.href === fileName) || null
+  };
+};
 
 // Section IDs are generated only for the local outline. Prefixing them keeps
 // headings such as "1.1" valid CSS selectors and stable hash targets.
@@ -123,34 +133,55 @@ const slugify = (value) => value
 
 // Small DOM factory used by the shell builders below. It avoids repeating the
 // class and text assignment pattern while keeping the markup explicit.
-const makeElement = (tag, className, text) => {
+const createElement = (tag, className, text) => {
   const element = document.createElement(tag);
   if (className) element.className = className;
-  if (text) element.textContent = text;
+  if (text !== undefined) element.textContent = text;
   return element;
 };
 
-const getCurrentChapter = () => chapters.find((chapter) => chapter.href === currentFile());
+// Links are created in one place so generated navigation uses the same
+// explicit text-node path as search results and never needs innerHTML.
+const createLink = (href, text, className = "") => {
+  const link = createElement("a", className, text);
+  link.href = href;
+  return link;
+};
+
+// Chapter numbers are stored as strings because they also appear in labels.
+// This formatter keeps single-digit chapters aligned with the original UI.
+const formatChapterNumber = (number) => {
+  const value = String(number);
+  return value.length < 2 ? `0${value}` : value;
+};
+
+// Use removeChild rather than innerHTML so callers can safely move existing
+// source nodes without reparsing their contents.
+const clearChildren = (element) => {
+  while (element.firstChild) element.removeChild(element.firstChild);
+};
 
 // The old pages remain the content source. We move their body nodes into an
 // article instead of duplicating or rewriting the course notes.
-const getSourceContent = () => {
-  const content = makeElement("article", `source-content ${isIndex ? "index-content" : "note-content"}`);
-  const originalNodes = Array.from(document.body.childNodes);
-
-  originalNodes.forEach((node) => {
-    if (node.nodeType === Node.ELEMENT_NODE && node.tagName === "SCRIPT") return;
-    content.appendChild(node);
+const extractSourceArticle = (context) => {
+  const articleClass = context.isIndex ? "index-content" : "note-content";
+  const article = createElement("article", `source-content ${articleClass}`);
+  const sourceNodes = Array.from(document.body.childNodes).filter((node) => {
+    return !(node.nodeType === Node.ELEMENT_NODE && node.tagName === "SCRIPT");
   });
 
-  return content;
+  sourceNodes.forEach((node) => article.appendChild(node));
+  return { article, sourceNodes };
 };
 
 // The source pages use tags and attributes that were common in early HTML.
 // Remove those layout instructions so the stylesheet can own the presentation.
 const removeLegacyLayout = (article) => {
   article.querySelectorAll("center").forEach((center) => {
-    center.replaceWith(...Array.from(center.childNodes));
+    const parent = center.parentNode;
+    if (!parent) return;
+    Array.from(center.childNodes).forEach((child) => parent.insertBefore(child, center));
+    parent.removeChild(center);
   });
 
   article.querySelectorAll("[align]").forEach((element) => {
@@ -164,7 +195,14 @@ const markPageTitles = (article) => {
   const title = article.querySelector("h1");
   if (title) {
     title.classList.add("page-title");
-    title.id = "top";
+    if (!title.id) {
+      title.id = "top";
+    } else if (title.id !== "top" && !article.querySelector("#top")) {
+      const topAnchor = createElement("span");
+      topAnchor.id = "top";
+      topAnchor.setAttribute("aria-hidden", "true");
+      title.parentNode.insertBefore(topAnchor, title);
+    }
   }
 
   article.querySelectorAll("h1").forEach((heading, index) => {
@@ -201,7 +239,11 @@ const prepareImages = (article) => {
   article.querySelectorAll("img").forEach((image, index) => {
     const source = image.getAttribute("src");
     if (source && !/^(?:https?:|data:|blob:)/i.test(source)) {
-      image.src = new URL(source, ORIGINAL_ROOT).href;
+      try {
+        image.src = new URL(source, ORIGINAL_ROOT).href;
+      } catch {
+        // One malformed figure should not remove the rest of the notes.
+      }
     }
     image.loading = index === 0 ? "eager" : "lazy";
     image.decoding = "async";
@@ -213,8 +255,8 @@ const prepareImages = (article) => {
 // screens, where forcing their columns to wrap would make them unreadable.
 const makeTablesScrollable = (article) => {
   article.querySelectorAll("table").forEach((table) => {
-    if (table.parentElement?.classList.contains("table-wrap")) return;
-    const wrapper = makeElement("div", "table-wrap");
+    if (table.parentElement && table.parentElement.classList.contains("table-wrap")) return;
+    const wrapper = createElement("div", "table-wrap");
     table.replaceWith(wrapper);
     wrapper.appendChild(table);
   });
@@ -228,7 +270,7 @@ const markCodeBlocks = (article) => {
 
 // Keep the order visible: each helper handles one legacy-formatting concern,
 // while this function describes the complete preparation pass at a glance.
-const normalizeContent = (article) => {
+const prepareSourceArticle = (article) => {
   removeLegacyLayout(article);
   markPageTitles(article);
   addSectionAnchors(article);
@@ -237,62 +279,70 @@ const normalizeContent = (article) => {
   markCodeBlocks(article);
 };
 
-// The new interface adds a short orientation line before the original title.
-// It is separate from the source prose so future source updates remain safe.
-const addIntro = (content, chapter) => {
-  if (isIndex) {
-    const title = content.querySelector("h1");
-    if (!title) return;
-    title.textContent = "Operating systems course notes";
-    title.insertAdjacentHTML(
-      "beforebegin",
-      '<span class="index-kicker">Operating systems / course archive</span>'
-    );
-    title.insertAdjacentHTML(
-      "afterend",
-      '<p class="index-intro">A working index of John Bell\'s course notes for CS 385. Use the chapter list to move through the material, then return here when you need the map again.</p>'
-    );
-    return;
-  }
+// Add the small orientation block used by the course index. DOM nodes are
+// created explicitly so this remains safe if the copy changes later.
+const addIndexIntro = (article) => {
+  const title = article.querySelector("h1");
+  if (!title || article.querySelector("[data-shell-intro]")) return;
 
-  const title = content.querySelector("h1");
-  if (!title || !chapter) return;
-  const label = `Chapter ${chapter.number.padStart(2, "0")} / ${chapter.group}`;
-  title.insertAdjacentHTML("beforebegin", `<span class="note-kicker">${label}</span>`);
-  title.insertAdjacentHTML(
-    "afterend",
-    '<p class="note-intro">Course notes arranged for a slower read. Follow the sections in order, or use the outline when you are reviewing a single idea.</p>'
+  title.textContent = "Operating systems course notes";
+  const kicker = createElement("span", "index-kicker", "Operating systems / course archive");
+  const intro = createElement(
+    "p",
+    "index-intro",
+    "A working index of John Bell's course notes for CS 385. Use the chapter list to move through the material, then return here when you need the map again."
   );
+  kicker.dataset.shellIntro = "true";
+  intro.dataset.shellIntro = "true";
+  title.parentNode.insertBefore(kicker, title);
+  title.parentNode.insertBefore(intro, title.nextSibling);
+};
+
+// Add the chapter context without changing the original note prose.
+const addChapterIntro = (article, chapter) => {
+  const title = article.querySelector("h1");
+  if (!title || !chapter || article.querySelector("[data-shell-intro]")) return;
+
+  const label = `Chapter ${formatChapterNumber(chapter.number)} / ${chapter.group}`;
+  const kicker = createElement("span", "note-kicker", label);
+  const intro = createElement(
+    "p",
+    "note-intro",
+    "Course notes arranged for a slower read. Follow the sections in order, or use the outline when you are reviewing a single idea."
+  );
+  kicker.dataset.shellIntro = "true";
+  intro.dataset.shellIntro = "true";
+  title.parentNode.insertBefore(kicker, title);
+  title.parentNode.insertBefore(intro, title.nextSibling);
 };
 
 // Header controls are shared by every document and stay usable without a
 // framework or server-side include system.
 const buildHeader = () => {
-  const header = makeElement("header", "site-header");
-  const inner = makeElement("div", "site-header__inner");
-  const brand = document.createElement("a");
-  brand.className = "site-brand";
-  brand.href = "index.html";
-  brand.innerHTML = '<span class="site-brand__mark">os / notes</span><span>Operating systems</span>';
+  const header = createElement("header", "site-header");
+  const inner = createElement("div", "site-header__inner");
+  const brand = createLink("index.html", "", "site-brand");
+  brand.append(
+    createElement("span", "site-brand__mark", "os / notes"),
+    createElement("span", "", "Operating systems")
+  );
 
-  const meta = makeElement("div", "site-header__meta");
-  const nav = makeElement("nav", "site-nav");
+  const controls = createElement("div", "site-header__meta");
+  const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "Primary");
-  const indexLink = document.createElement("a");
-  indexLink.href = "index.html";
-  indexLink.textContent = "Course map";
-  nav.appendChild(indexLink);
+  nav.appendChild(createLink("index.html", "Course map"));
 
-  const searchButton = makeElement("button", "header-button", "Search");
+  const searchButton = createElement("button", "header-button", "Search");
   searchButton.type = "button";
   searchButton.dataset.openSearch = "true";
 
-  const themeButton = makeElement("button", "header-button", "Night");
+  const themeButton = createElement("button", "header-button", "Night");
   themeButton.type = "button";
   themeButton.dataset.toggleTheme = "true";
+  themeButton.setAttribute("aria-pressed", "false");
 
-  meta.append(nav, searchButton, themeButton);
-  inner.append(brand, meta);
+  controls.append(nav, searchButton, themeButton);
+  inner.append(brand, controls);
   header.appendChild(inner);
   return header;
 };
@@ -300,43 +350,38 @@ const buildHeader = () => {
 // The rail gives long notes a fixed way back to the course map and a compact
 // indication of the current chapter.
 const buildRail = (chapter) => {
-  const rail = makeElement("aside", "chapter-rail");
-  const wordmark = document.createElement("a");
-  wordmark.className = "chapter-rail__wordmark";
-  wordmark.href = "index.html";
-  wordmark.textContent = "OS / notes";
+  const rail = createElement("aside", "chapter-rail");
+  rail.setAttribute("aria-label", "Chapter navigation");
+  const wordmark = createLink("index.html", "OS / notes", "chapter-rail__wordmark");
 
-  const rule = makeElement("span", "chapter-rail__rule");
+  const rule = createElement("span", "chapter-rail__rule");
   rule.setAttribute("aria-hidden", "true");
 
-  const indexLink = document.createElement("a");
-  indexLink.className = "chapter-rail__link";
-  indexLink.href = "index.html";
-  indexLink.textContent = "Index";
+  const indexLink = createLink("index.html", "Index", "chapter-rail__link");
 
-  const current = makeElement("span", "chapter-rail__current", chapter ? `Ch. ${chapter.number}` : "Note");
+  const currentLabel = chapter ? `Ch. ${chapter.number}` : "Note";
+  const current = createElement("span", "chapter-rail__current", currentLabel);
   rail.append(wordmark, rule, indexLink, current);
   return rail;
 };
 
-// Build the outline from the content that is actually present on the page.
-// Supplemental note pages therefore get only the headings they contain.
-const buildToc = (content) => {
-  const headings = Array.from(content.querySelectorAll("h3"));
+// Build the outline from h3 headings. h4 and lower headings stay in the prose
+// so the outline remains useful instead of becoming a second full document.
+const buildChapterOutline = (article) => {
+  const headings = Array.from(article.querySelectorAll("h3"));
   if (!headings.length) return null;
 
-  const aside = makeElement("aside", "notes-toc");
-  const details = document.createElement("details");
+  const aside = createElement("aside", "notes-toc");
+  aside.setAttribute("aria-label", "Chapter outline");
+  const details = createElement("details");
   details.open = true;
-  const summary = document.createElement("summary");
-  summary.textContent = "On this page";
-  const nav = document.createElement("nav");
+  const summary = createElement("summary", "", "On this page");
+  const nav = createElement("nav");
   nav.setAttribute("aria-label", "On this page");
 
   headings.forEach((heading) => {
-    const link = document.createElement("a");
-    link.href = `#${heading.id}`;
-    link.textContent = heading.textContent.trim();
+    const link = createLink(`#${heading.id}`, heading.textContent.trim());
+    link.dataset.tocLink = "true";
     nav.appendChild(link);
   });
 
@@ -347,56 +392,64 @@ const buildToc = (content) => {
 
 // Pagination uses the catalog order, keeping review sessions moving between
 // adjacent chapters without inventing a separate route structure.
-const buildPagination = (content, chapter) => {
-  if (!chapter) return;
-  const index = chapters.indexOf(chapter);
-  const previous = chapters[index - 1];
-  const next = chapters[index + 1];
-  if (!previous && !next) return;
+const buildPagination = (chapter) => {
+  if (!chapter) return null;
+  const index = CHAPTERS.indexOf(chapter);
+  if (index < 0) return null;
 
-  const nav = makeElement("nav", "chapter-pagination");
+  const previous = CHAPTERS[index - 1];
+  const next = CHAPTERS[index + 1];
+  if (!previous && !next) return null;
+
+  const nav = createElement("nav", "chapter-pagination");
   nav.setAttribute("aria-label", "Chapter navigation");
 
   if (previous) {
-    const link = document.createElement("a");
-    link.href = previous.href;
-    link.innerHTML = `<span>Previous / ${previous.number.padStart(2, "0")}</span><strong>${previous.title}</strong>`;
+    const link = createLink(previous.href, "");
+    link.append(
+      createElement("span", "", `Previous / ${formatChapterNumber(previous.number)}`),
+      createElement("strong", "", previous.title)
+    );
     nav.appendChild(link);
   } else {
-    nav.appendChild(document.createElement("span"));
+    nav.appendChild(createElement("span"));
   }
 
   if (next) {
-    const link = document.createElement("a");
-    link.href = next.href;
-    link.innerHTML = `<span>Next / ${next.number.padStart(2, "0")}</span><strong>${next.title}</strong>`;
+    const link = createLink(next.href, "");
+    link.append(
+      createElement("span", "", `Next / ${formatChapterNumber(next.number)}`),
+      createElement("strong", "", next.title)
+    );
     nav.appendChild(link);
   }
 
-  content.appendChild(nav);
+  return nav;
 };
 
 // The footer documents the source and the deployment model instead of adding
 // generic product links that do not belong to a course archive.
 const buildFooter = () => {
-  const footer = makeElement("footer", "site-footer");
-  const inner = makeElement("div", "site-footer__inner");
-  const copy = makeElement("div");
-  copy.innerHTML = '<h2 class="site-footer__title">Read the system, one layer at a time.</h2><p>Original course notes by John Bell for CS 385 at the University of Illinois Chicago. This interface keeps the source pages and figures, adds a reading shell, and has no build step or server dependency.</p>';
+  const footer = createElement("footer", "site-footer");
+  const inner = createElement("div", "site-footer__inner");
+  const copy = createElement("div");
+  copy.append(
+    createElement("h2", "site-footer__title", "Read the system, one layer at a time."),
+    createElement(
+      "p",
+      "",
+      "Original course notes by John Bell for CS 385 at the University of Illinois Chicago. This interface keeps the source pages and figures, adds a reading shell, and has no build step or server dependency."
+    )
+  );
 
-  const links = makeElement("nav", "site-footer__links");
+  const links = createElement("nav", "site-footer__links");
   links.setAttribute("aria-label", "Footer");
-  const indexLink = document.createElement("a");
-  indexLink.href = "index.html";
-  indexLink.textContent = "Back to course map";
-  const printLink = document.createElement("a");
-  printLink.href = "#top";
-  printLink.textContent = "Back to top";
-  printLink.addEventListener("click", (event) => {
-    event.preventDefault();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-  links.append(indexLink, printLink);
+  const topLink = createLink("#top", "Back to top", "back-to-top");
+  topLink.dataset.backToTop = "true";
+  links.append(
+    createLink("index.html", "Back to course map"),
+    topLink
+  );
 
   inner.append(copy, links);
   footer.appendChild(inner);
@@ -406,176 +459,395 @@ const buildFooter = () => {
 // Search is intentionally local and small. It covers the chapter catalog,
 // which is the useful cross-page index for a static deployment.
 const buildSearchDialog = () => {
-  const dialog = document.createElement("dialog");
-  dialog.className = "search-dialog";
-  dialog.innerHTML = '<div class="search-dialog__inner"><h2>Search the notes</h2><input type="search" placeholder="Try \"memory\" or \"processes\"" aria-label="Search course notes"><ul class="search-results"></ul><p class="search-dialog__hint">Press / to open. Press Escape to close.</p></div>';
+  const dialog = createElement("dialog", "search-dialog");
+  dialog.setAttribute("aria-labelledby", "search-dialog-title");
 
-  const input = dialog.querySelector("input");
-  const results = dialog.querySelector(".search-results");
+  const inner = createElement("div", "search-dialog__inner");
+  const head = createElement("div", "search-dialog__head");
+  const title = createElement("h2", "", "Search the notes");
+  title.id = "search-dialog-title";
 
-  const renderResults = (query = "") => {
-    const normalized = query.trim().toLowerCase();
-    results.replaceChildren();
-    chapters
-      .filter((chapter) => `${chapter.number} ${chapter.group} ${chapter.title}`.toLowerCase().includes(normalized))
-      .forEach((chapter) => {
-        const item = document.createElement("li");
-        const link = document.createElement("a");
-        link.href = chapter.href;
-        link.innerHTML = `<span>${chapter.group} / ${chapter.number.padStart(2, "0")}</span><strong>${chapter.title}</strong>`;
-        link.addEventListener("click", () => dialog.close());
-        item.appendChild(link);
-        results.appendChild(item);
-      });
-  };
+  const closeButton = createElement("button", "header-button search-dialog__close", "Close");
+  closeButton.type = "button";
+  closeButton.dataset.closeSearch = "true";
+  head.append(title, closeButton);
 
-  input.addEventListener("input", () => renderResults(input.value));
-  dialog.addEventListener("close", () => {
-    input.value = "";
-    renderResults();
-  });
-  renderResults();
-  return dialog;
+  const input = createElement("input");
+  input.type = "search";
+  input.placeholder = 'Try "memory" or "processes"';
+  input.setAttribute("aria-label", "Search course notes");
+
+  const results = createElement("ul", "search-results");
+  results.setAttribute("aria-live", "polite");
+  const hint = createElement("p", "search-dialog__hint", "Press / to open. Press Escape to close.");
+
+  inner.append(head, input, results, hint);
+  dialog.appendChild(inner);
+  return { dialog, input, results, closeButton };
 };
 
-// Persist the reader's surface preference in local storage. No preference is
-// required for the first visit, so the default remains the paper theme.
-const setupTheme = () => {
-  const savedTheme = window.localStorage.getItem("os-notes-theme");
-  if (savedTheme === "night") document.body.dataset.theme = "night";
+// Search only the small static catalog. Note text stays on its own page so
+// this interaction never needs a server or a second content index.
+const getSearchMatches = (query) => {
+  const normalized = query.trim().toLowerCase();
+  return CHAPTERS.filter((chapter) => {
+    const searchable = `${chapter.number} ${chapter.group} ${chapter.title}`.toLowerCase();
+    return searchable.includes(normalized);
+  });
+};
 
-  const button = document.querySelector("[data-toggle-theme]");
+// Render search results with text nodes so catalog values never become HTML.
+const renderSearchResults = (results, query) => {
+  const matches = getSearchMatches(query);
+  clearChildren(results);
+  results.setAttribute("aria-label", `${matches.length} chapters found`);
+
+  matches.forEach((chapter) => {
+    const item = createElement("li");
+    const link = createLink(chapter.href, "");
+    link.append(
+      createElement("span", "", `${chapter.group} / ${formatChapterNumber(chapter.number)}`),
+      createElement("strong", "", chapter.title)
+    );
+    item.appendChild(link);
+    results.appendChild(item);
+  });
+
+  if (!matches.length) {
+    results.appendChild(createElement("li", "search-empty", "No chapters found."));
+  }
+};
+
+// Storage is optional. Private browsing or a restrictive browser policy should
+// affect persistence only, never the theme control or the notes.
+const readStoredTheme = () => {
+  try {
+    return window.localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredTheme = (theme) => {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // The visual preference still works when storage is unavailable.
+  }
+};
+
+// Apply the state to both CSS and the button's accessible pressed value.
+const applyTheme = (theme, button) => {
+  const isNight = theme === "night";
+  if (isNight) {
+    document.body.dataset.theme = "night";
+  } else {
+    delete document.body.dataset.theme;
+  }
+
   if (!button) return;
-  const updateLabel = () => {
-    button.textContent = document.body.dataset.theme === "night" ? "Day" : "Night";
-  };
-  updateLabel();
+  button.textContent = isNight ? "Day" : "Night";
+  button.setAttribute("aria-pressed", String(isNight));
+};
+
+// Persist the reader's surface preference without making storage a dependency
+// of the page itself.
+const bindTheme = () => {
+  const button = document.querySelector("[data-toggle-theme]");
+  const initialTheme = readStoredTheme() === "night" ? "night" : "day";
+  applyTheme(initialTheme, button);
+  if (!button) return;
+
   button.addEventListener("click", () => {
-    const night = document.body.dataset.theme === "night";
-    if (night) {
-      delete document.body.dataset.theme;
-      window.localStorage.setItem("os-notes-theme", "day");
-    } else {
-      document.body.dataset.theme = "night";
-      window.localStorage.setItem("os-notes-theme", "night");
-    }
-    updateLabel();
+    const nextTheme = document.body.dataset.theme === "night" ? "day" : "night";
+    applyTheme(nextTheme, button);
+    writeStoredTheme(nextTheme);
   });
 };
 
-// Support both a visible button and the slash shortcut without hijacking text
-// input fields where the character should be typed normally.
-const setupSearch = (dialog) => {
-  const openButtons = document.querySelectorAll("[data-open-search]");
-  openButtons.forEach((button) => button.addEventListener("click", () => {
-    dialog.showModal();
-    dialog.querySelector("input")?.focus();
-  }));
+// A native dialog exposes the open state as an attribute. The same check also
+// works for the simple open-attribute fallback used without showModal().
+const isDialogOpen = (dialog) => dialog.hasAttribute("open");
+
+// Open the search surface and remember the control that should regain focus.
+const openSearch = (search, trigger) => {
+  if (isDialogOpen(search.dialog)) return;
+  search.lastTrigger = trigger || null;
+
+  if (typeof search.dialog.showModal === "function") {
+    search.dialog.showModal();
+  } else {
+    search.dialog.setAttribute("open", "true");
+  }
+  search.input.focus();
+};
+
+// Reset the query and restore focus after either Escape or the close button.
+const resetSearch = (search) => {
+  search.input.value = "";
+  renderSearchResults(search.results, "");
+  if (search.lastTrigger) search.lastTrigger.focus();
+  search.lastTrigger = null;
+};
+
+// Use the native close event where available, with an attribute fallback for
+// browsers that can render dialog but do not implement its modal methods.
+const closeSearch = (search) => {
+  if (!isDialogOpen(search.dialog)) return;
+
+  if (typeof search.dialog.close === "function") {
+    search.dialog.close();
+  } else {
+    search.dialog.removeAttribute("open");
+    resetSearch(search);
+  }
+};
+
+const isTextEntry = (target) => {
+  if (!target) return false;
+  return target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || target.isContentEditable;
+};
+
+// Support the visible button and the slash shortcut. The dialog object owns
+// its own open, close, focus, and reset behavior.
+const bindSearch = (search) => {
+  renderSearchResults(search.results, "");
+
+  document.querySelectorAll("[data-open-search]").forEach((button) => {
+    button.addEventListener("click", () => openSearch(search, button));
+  });
+  search.closeButton.addEventListener("click", () => closeSearch(search));
+  search.input.addEventListener("input", () => {
+    renderSearchResults(search.results, search.input.value);
+  });
+  search.dialog.addEventListener("close", () => resetSearch(search));
 
   document.addEventListener("keydown", (event) => {
-    const target = event.target;
-    const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target.isContentEditable;
-    if (event.key === "/" && !isTyping) {
+    if (event.key === "Escape" && isDialogOpen(search.dialog)) {
       event.preventDefault();
-      dialog.showModal();
-      dialog.querySelector("input")?.focus();
+      closeSearch(search);
+      return;
+    }
+
+    if (event.key === "/" && !isTextEntry(event.target)) {
+      event.preventDefault();
+      openSearch(search, document.activeElement);
     }
   });
 };
 
-// Reading progress is updated in one animation frame per scroll burst. This
-// keeps the indicator responsive without doing layout work for every event.
-const setupProgress = () => {
+// Prefer a paint-aligned update, with a timer fallback for older browsers.
+const scheduleFrame = (callback) => {
+  if (typeof window.requestAnimationFrame === "function") {
+    return window.requestAnimationFrame(callback);
+  }
+  return window.setTimeout(callback, 0);
+};
+
+const getScrollPosition = () => window.scrollY || window.pageYOffset || 0;
+
+const updateProgress = (bar) => {
+  const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = scrollable > 0 ? getScrollPosition() / scrollable : 0;
+  bar.style.width = `${Math.min(100, Math.max(0, progress * 100))}%`;
+};
+
+// Reading progress is functional UI, so it updates on scroll and resize but
+// batches the work into one animation frame per event burst.
+const bindProgress = (context) => {
   const bar = document.querySelector(".reading-progress__bar");
-  if (!bar || isIndex) return;
-  let frame = 0;
-  const update = () => {
-    frame = 0;
-    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
-    bar.style.width = `${Math.min(100, Math.max(0, progress * 100))}%`;
+  if (!bar || context.isIndex) return;
+
+  let updatePending = false;
+  const requestUpdate = () => {
+    if (updatePending) return;
+    updatePending = true;
+    scheduleFrame(() => {
+      updatePending = false;
+      updateProgress(bar);
+    });
   };
-  window.addEventListener("scroll", () => {
-    if (!frame) frame = window.requestAnimationFrame(update);
-  }, { passive: true });
-  update();
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  updateProgress(bar);
+};
+
+// Resolve a hash by ID instead of treating it as a CSS selector. Source IDs
+// can contain punctuation that selectors would interpret as syntax.
+const getHashTarget = (hash) => {
+  const rawId = hash && hash.charAt(0) === "#" ? hash.slice(1) : hash;
+  if (!rawId) return null;
+  try {
+    return document.getElementById(decodeURIComponent(rawId));
+  } catch {
+    return null;
+  }
+};
+
+const setActiveTocLink = (links, activeId) => {
+  links.forEach((link) => {
+    const isActive = link.getAttribute("href") === `#${activeId}`;
+    link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "location");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
 };
 
 // Highlight the section currently near the reading viewport. The observer is
 // optional, so the outline still works as plain links in older browsers.
-const setupToc = () => {
-  const links = Array.from(document.querySelectorAll(".notes-toc a"));
-  if (!links.length || !window.IntersectionObserver) return;
-  const sections = links
-    .map((link) => document.querySelector(link.hash))
-    .filter(Boolean);
+const bindToc = () => {
+  const links = Array.from(document.querySelectorAll("[data-toc-link]"));
+  if (!links.length || typeof window.IntersectionObserver !== "function") return;
+
+  const sections = links.map((link) => getHashTarget(link.getAttribute("href"))).filter(Boolean);
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      links.forEach((link) => link.classList.toggle("is-active", link.hash === `#${entry.target.id}`));
-    });
+    const visibleEntries = entries
+      .filter((entry) => entry.isIntersecting)
+      .sort((first, second) => first.boundingClientRect.top - second.boundingClientRect.top);
+    const firstVisible = visibleEntries[0];
+    if (firstVisible) setActiveTocLink(links, firstVisible.target.id);
   }, { rootMargin: "-18% 0px -70% 0px", threshold: 0 });
   sections.forEach((section) => observer.observe(section));
 };
 
-// External references open separately so a student does not lose their place
-// in the notes while checking a source or supporting resource.
-const setupExternalLinks = () => {
-  document.querySelectorAll(".source-content a[href]").forEach((link) => {
-    if (!/^https?:/i.test(link.href)) return;
-    link.target = "_blank";
-    link.rel = "noreferrer noopener";
+// Back-to-top follows the user's motion preference instead of forcing a
+// smooth animation on every reader.
+const getReducedMotionBehavior = () => {
+  if (typeof window.matchMedia !== "function") return "auto";
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+};
+
+const bindBackToTop = () => {
+  const link = document.querySelector("[data-back-to-top]");
+  if (!link) return;
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    try {
+      window.scrollTo({ top: 0, behavior: getReducedMotionBehavior() });
+    } catch {
+      window.scrollTo(0, 0);
+    }
   });
 };
 
-// Assemble the shell after the original document has loaded. The same entry
-// point handles the index, chapters, and the two supplemental note pages.
-const init = () => {
-  const chapter = getCurrentChapter();
-  document.head.querySelectorAll("style").forEach((style) => style.remove());
-  const content = getSourceContent();
-  normalizeContent(content);
-  addIntro(content, chapter);
+// Compare URL origins so relative chapter links stay internal even after the
+// browser exposes their absolute href property.
+const isExternalLink = (link) => {
+  const href = link.getAttribute("href");
+  if (!href || href.charAt(0) === "#") return false;
 
-  document.body.replaceChildren();
-  document.body.className = `site-page ${isIndex ? "is-index" : "is-note"}`;
-  document.body.appendChild(makeElement("a", "skip-link", "Skip to content"));
-  document.querySelector(".skip-link").href = "#main-content";
+  try {
+    const url = new URL(href, window.location.href);
+    return (url.protocol === "http:" || url.protocol === "https:")
+      && url.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+};
 
-  const progress = makeElement("div", "reading-progress");
+// External references open separately. Relative links remain in the same tab
+// so chapter navigation does not unexpectedly create new windows.
+const bindExternalLinks = () => {
+  document.querySelectorAll(".source-content a[href]").forEach((link) => {
+    if (!isExternalLink(link)) return;
+    link.target = "_blank";
+    const rel = new Set((link.getAttribute("rel") || "").split(/\s+/).filter(Boolean));
+    rel.add("noreferrer");
+    rel.add("noopener");
+    link.setAttribute("rel", Array.from(rel).join(" "));
+  });
+};
+
+// A few source pages contain inline legacy styles. The shared stylesheet is the
+// single visual source of truth, so remove those rules before rendering.
+const removeLegacyStyles = () => {
+  document.head.querySelectorAll("style").forEach((style) => {
+    if (style.parentNode) style.parentNode.removeChild(style);
+  });
+};
+
+// Build the entire shell off-document. The body is replaced only after every
+// node has been created successfully.
+const buildPageShell = (context, article) => {
+  const fragment = document.createDocumentFragment();
+  const skipLink = createLink("#main-content", "Skip to content", "skip-link");
+  const progress = createElement("div", "reading-progress");
   progress.setAttribute("aria-hidden", "true");
-  progress.appendChild(makeElement("span", "reading-progress__bar"));
-  document.body.append(progress, buildHeader());
+  progress.appendChild(createElement("span", "reading-progress__bar"));
+  fragment.append(skipLink, progress, buildHeader());
 
-  const main = makeElement("main", `site-main ${isIndex ? "index-main" : "note-main"}`);
+  const mainClass = context.isIndex ? "index-main" : "note-main";
+  const main = createElement("main", `site-main ${mainClass}`);
   main.id = "main-content";
 
-  if (isIndex) {
-    main.appendChild(content);
+  if (context.isIndex) {
+    main.appendChild(article);
   } else {
-    const layout = makeElement("div", "reading-layout");
-    const toc = buildToc(content);
-    layout.append(buildRail(chapter), content);
-    if (toc) layout.appendChild(toc);
+    const layout = createElement("div", "reading-layout");
+    const outline = buildChapterOutline(article);
+    const pagination = buildPagination(context.chapter);
+    if (pagination) article.appendChild(pagination);
+    layout.append(buildRail(context.chapter), article);
+    if (outline) layout.appendChild(outline);
     main.appendChild(layout);
-    buildPagination(content, chapter);
   }
 
-  document.body.append(main, buildFooter());
-  const dialog = buildSearchDialog();
-  document.body.appendChild(dialog);
+  fragment.append(main, buildFooter());
+  const search = buildSearchDialog();
+  fragment.appendChild(search.dialog);
+  return { fragment, search };
+};
 
-  setupTheme();
-  setupSearch(dialog);
-  setupProgress();
-  setupToc();
-  setupExternalLinks();
+// Keep the original notes usable if an optional browser feature breaks during
+// initialization.
+const restoreSourceContent = (sourceNodes) => {
+  clearChildren(document.body);
+  document.body.removeAttribute("class");
+  sourceNodes.forEach((node) => document.body.appendChild(node));
+};
+
+// Assemble the shell only after preparation succeeds. If an optional browser
+// API fails, the original notes are restored instead of leaving a blank page.
+const init = () => {
+  const context = getPageContext();
+  const source = extractSourceArticle(context);
+
+  try {
+    removeLegacyStyles();
+    prepareSourceArticle(source.article);
+    if (context.isIndex) {
+      addIndexIntro(source.article);
+    } else {
+      addChapterIntro(source.article, context.chapter);
+    }
+
+    const shell = buildPageShell(context, source.article);
+    clearChildren(document.body);
+    document.body.className = `site-page ${context.isIndex ? "is-index" : "is-note"}`;
+    document.body.appendChild(shell.fragment);
+
+    bindTheme();
+    bindSearch(shell.search);
+    bindProgress(context);
+    bindToc();
+    bindBackToTop();
+    bindExternalLinks();
+  } catch (error) {
+    restoreSourceContent(source.sourceNodes);
+    console.error("The reading shell could not initialize.", error);
+  }
 };
 
 // Defer until the source body exists, while still supporting direct execution
 // when this file is loaded after parsing.
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init, { once: true });
+  document.addEventListener("DOMContentLoaded", init);
 } else {
   init();
 }
