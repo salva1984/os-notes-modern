@@ -1,0 +1,413 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="Operating systems introduction course notes.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: Introduction</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  Introduction
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, <strong>Ninth</strong> Edition &quot;, Chapter 1
+</OL>
+<p>Just as in <em><a href="blindMen.html"><strong>The Blind Men and the Elephant</strong></a></em>, this chapter looks at Operating Systems from a number of different viewpoints. No one view really shows the complete picture, but by looking from a number of different views, we can get a pretty good overall picture of what operating systems are all about.</p>
+<h3>1.1 What Operating Systems Do - For Users, For Applications, etc.</h3>
+<p align="center"><img src="images/Chapter1/1_1_SystemComponents.jpg"><br>
+<strong>Figure 1.1 - Abstract view of the components of a computer system</strong></p>
+<ul>
+  <li>Computer = HW + OS + Apps + Users</li>
+  <li>OS serves as interface between HW and ( Apps &amp; Users )</li>
+  <li>OS provides services for Apps &amp; Users   </li>
+  <li>OS manages resources ( Government model, it doesn't produce anything. )</li>
+  <li>Debates about what is included in the OS - Just the kernel, or everything the vendor ships?<br>
+    ( Consider the distinction between system applications and 3rd party or user apps. )
+  </li>
+</ul>
+<h3>1.2 Computer-System Organization - What are all the parts, and how do they fit together?</h3>
+<p align="center"><img src="images/Chapter1/1_2_ModernSystem.jpg"><br>
+<strong>Figure 1.2 - A modern computer system</strong></p>
+<blockquote>
+  <h4>1.2.1 Computer-System Operation</h4>
+  <ul>
+    <li>Bootstrap program</li>
+    <li>Shared memory between CPU and I/O cards</li>
+    <li>Time slicing for multi-process operation</li>
+    <li>Interrupt handling - clock, HW, SW</li>
+    <li>Implementation of system calls     </li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter1/1_3_InterruptTimeLine.jpg" ><br>
+    <strong>Figure 1.3 - Interrupt timeline for a single process doing output</strong></p>
+</blockquote>
+  <h4>1.2.2 Storage Structure</h4>
+  <ul>
+    <li>Main memory ( RAM )
+      <ul>
+        <li>Programs must be loaded into RAM to run.</li>
+        <li>Instructions and data fetched from RAM into registers.</li>
+        <li>RAM is volatile</li>
+        <li>&quot;Medium&quot; size and speed </li>
+      </ul>
+    </li>
+    <li>Other electronic ( volatile ) memory is faster, smaller, and more expensive per bit:
+      <ul>
+        <li>Registers</li>
+        <li>CPU Cache</li>
+      </ul>
+    </li>
+    <li>Non-volatile memory ( &quot;permanent&quot; storage )
+      is slower, larger, and less expensive per bit:
+      <ul>
+        <li>Electronic disks</li>
+        <li>Magnetic disks</li>
+        <li>Optical disks</li>
+        <li>Magnetic Tapes  </li>
+      </ul>
+      <blockquote>
+        <p align="center"><img src="images/Chapter1/1_4_StorageDeviceHierarchy.jpg"><br>
+        <strong>Figure 1.4 - Storage-device hierarchy</strong></p>
+</blockquote>
+    </li>
+  </ul>
+  <h4>1.2.3 I/O Structure  	</h4>
+  <ul>
+    <li>Typical operation involves I/O requests, direct memory access ( DMA ), and interrupt handling.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter1/1_5_HowItWorks.jpg"><br>
+    <strong>Figure 1.5 - How a modern computer system works</strong></p>
+</blockquote>
+</blockquote>
+<h3>1.3 Computer-System Architecture - Different Operating Systems for Different Kinds of Computer Environments</h3>
+<blockquote>
+  <h4>1.3.1 Single-Processor Systems</h4>
+  <ul>
+    <li>One main CPU which manages the computer and runs user apps.</li>
+    <li>Other specialized processors ( disk controllers, GPUs, etc. ) do not run user apps.  </li>
+  </ul>
+  <h4>1.3.2 Multiprocessor Systems</h4>
+  <ol>
+    <li>Increased throughput - Faster execution, but not 100% linear speedup. </li>
+    <li>Economy of scale - Peripherals, disks, memory, shared among processors. </li>
+    <li>Increased reliability
+      <ul>
+        <li>Failure of a CPU slows system, doesn't crash it. </li>
+        <li>Redundant processing provides system of checks and balances. ( e.g. NASA ) </li>
+      </ul>
+      <blockquote>
+        <p align="center"><img src="images/Chapter1/1_6_SMP_Architecture.jpg"><br>
+        <strong>Figure 1.6 - Symmetric multiprocessing architecture</strong></p>
+<p align="center"><img src="images/Chapter1/1_7_DualCore.jpg"><br>
+  <strong>Figure 1.7 - A dual-core design with two cores placed on the same chip</strong></p>
+</blockquote>
+    </li>
+  </ol>
+  <h4>1.3.3 Clustered Systems   </h4>
+  <ul>
+    <li>Independent systems, with shared common storage and connected by a high-speed LAN, working together.</li>
+    <li>Special considerations for access to shared storage are required, ( Distributed lock management ), as are collaboration protocols. </li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter1/1_8_ClusteredSystem.jpg"><br>
+    <strong>Figure 1.8 - General structure of a clustered system</strong></p>
+</blockquote>
+</blockquote>
+<h3>1.4 Operating-System Structure</h3>
+<blockquote>
+  <p>A time-sharing ( multi-user multi-tasking ) OS requires:</p>
+  <ul>
+    <li>Memory management</li>
+    <li>Process management</li>
+    <li>Job scheduling</li>
+    <li>Resource allocation strategies</li>
+    <li>Swap space / virtual memory in physical memory</li>
+    <li>Interrupt handling    </li>
+    <li>File system management</li>
+    <li>Protection and security</li>
+    <li>Inter-process communications   </li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter1/1_9_MemoryLayout.jpg" ><br>
+    <strong>Figure 1.9 - Memory layout for a multiprogramming system</strong></p>
+</blockquote>
+</blockquote>
+<h3>1.5 Operating-System Operations</h3>
+<blockquote>
+  <p>Interrupt-driven nature of modern OSes requires that erroneous processes not be able to disturb anything else.</p>
+  <h4>1.5.1 Dual-Mode and Multimode Operation</h4>
+  <ul>
+    <li>User mode when executing harmless code in user applications</li>
+    <li>Kernel mode ( a.k.a. system mode, supervisor mode, privileged mode ) when executing potentially dangerous code in the system kernel.</li>
+    <li>Certain machine instructions ( privileged instructions ) can only be executed in kernel mode.</li>
+    <li>Kernel mode can only be entered by making system calls. User code cannot flip the mode switch.</li>
+    <li>Modern computers support dual-mode operation in hardware, and therefore most modern OSes support dual-mode operation.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter1/1_10_UserToKernelMode.jpg"><br>
+    <strong>Figure 1.10 - Transition from user to kernel mode</strong></p>
+</blockquote>
+  <ul>
+  <li>The concept of modes can be extended beyond two, requiring more than a single mode bit</li>
+    <li>CPUs that support virtualization use one of these extra bits to indicate when the virtual machine manager, VMM, is in control of the system. The VMM has more privileges than ordinary user programs, but not so many as the full kernel.</li>
+    <li>System calls are typically implemented in the form of software interrupts, which causes the hardware's interrupt handler to transfer control over to an appropriate interrupt handler, which is part of the operating system, switching the mode bit to kernel mode in the process. The interrupt handler checks exactly which interrupt was generated, checks additional parameters ( generally passed through registers ) if appropriate, and then calls the appropriate kernel service routine to handle the service requested by the system call.</li>
+    <li>User programs' attempts to execute illegal instructions ( privileged or non-existent instructions ), or to access forbidden memory areas, also generate software interrupts, which are trapped by the interrupt handler and control is transferred to the OS, which issues an appropriate error message, possibly dumps data to a log ( core ) file for later analysis, and then terminates the offending program.</li>
+  </ul>
+  <h4>1.5.2 Timer   </h4>
+  <ul>
+    <li>Before the kernel begins executing user code, a timer is set to generate an interrupt.</li>
+    <li>The timer interrupt  handler reverts control back to the kernel.</li>
+    <li>This assures that no user process can take over the system.</li>
+    <li>Timer control is a privileged instruction, ( requiring kernel mode. )   </li>
+  </ul>
+</blockquote>
+<h3>1.6 Process Management</h3>
+<blockquote>
+  <p>An OS is responsible for the following tasks with regards to process management:</p>
+  <ul>
+    <li>Creating and deleting both user and system processes</li>
+    <li>Ensuring that each process receives its necessary resources, without interfering with other processes.</li>
+    <li>Suspending and resuming processes</li>
+    <li>Process synchronization and communication</li>
+    <li>Deadlock handling</li>
+  </ul>
+</blockquote>
+<h3>1.7 Memory Management</h3>
+  <blockquote>
+    <p>An OS is responsible for the following tasks with regards to memory management:</p>
+    <ul>
+      <li>Keeping track of which blocks of memory are currently in use, and by which processes.</li>
+      <li>Determining which blocks of code and data to move into and out of memory, and when.</li>
+      <li>Allocating and deallocating memory as needed. ( E.g. new, malloc ) </li>
+    </ul>
+  </blockquote>
+  <h3>1.8 Storage Management</h3>
+  <blockquote>
+    <h4>1.8.1 File-System Management</h4>
+    <p>An OS is responsible for the following tasks with regards to filesystem management:</p>
+    <ul>
+      <li>Creating and deleting files and directories</li>
+      <li>Supporting primitives for manipulating files and directories. ( open, flush, etc. )</li>
+      <li>Mapping files onto secondary storage.</li>
+      <li>Backing up files onto stable permanent storage media. </li>
+    </ul>
+    <h4>1.8.2 Mass-Storage Management</h4>
+    <p>An OS is responsible for the following tasks with regards to mass-storage management:</p>
+    <ul>
+      <li>Free disk space management</li>
+      <li>Storage allocation</li>
+      <li>Disk scheduling</li>
+    </ul>
+    <p>Note the trade-offs regarding size, speed, longevity, security, and re-writability between different mass storage devices, including floppy disks, hard disks, tape drives, CDs, DVDs, etc.  </p>
+    <h4>1.8.3 Caching  </h4>
+    <ul>
+      <li>There are many cases in which a smaller higher-speed storage space serves as a cache, or temporary storage, for some of the most frequently needed portions of larger slower storage areas.</li>
+      <li>The hierarchy of memory storage ranges from CPU registers to hard drives and external storage. ( See table below. )</li>
+      <li>The OS is responsible for determining what information to store in what level of cache, and when to transfer data from one level to another.</li>
+      <li>The proper choice of cache management can have a profound impact on system performance.</li>
+      <li>Data read in from disk follows a migration path from the hard drive to main memory, then to the CPU cache, and finally to the registers before it can be used, while data being written follows the reverse path.
+        Each step ( other than the registers ) will typically fetch more data than is immediately needed, and cache the excess in order to satisfy future requests faster. For writing, small amounts of data are frequently buffered until there is enough to fill an entire &quot;block&quot; on the next output device in the chain. </li>
+      <li>The issues get more complicated when multiple processes ( or worse multiple computers ) access common data, as it is important to ensure that every access reaches the most up-to-date copy of the cached data ( amongst several copies in different cache levels. )</li>
+    </ul>
+    <blockquote>
+      <p align="center"><img src="images/Chapter1/1_11_StoragePerformance.jpg"><br>
+      <strong>Figure 1.11 - Performance of various levels of storage</strong></p>
+</blockquote>
+    <blockquote>
+      <p align="center"><img src="images/Chapter1/1_12_IntegerMigration.jpg"><br>
+      <strong>Figure 1.12 - Migration of integer A from disk to register</strong></p>
+</blockquote>
+    <h4>1.8.4 I/O Systems </h4>
+    <p>The I/O subsystem consists of several components:</p>
+    <ul>
+      <li>A memory-management component that includes buffering, caching, and spooling.</li>
+      <li>A general device-driver interface.</li>
+      <li>Drivers for specific hardware devices.</li>
+      <li>( UNIX implements multiple device interfaces for many types of devices, one for accessing the device character by character and one for accessing the device block by block. These can be seen by doing a long listing of /dev, and looking for a &quot;c&quot; or &quot;b&quot; in the first position. You will also note that the &quot;size&quot; field contains two numbers, known as the major and minor device numbers, instead of the normal one. The major number signifies which device driver handles I/O for this device, and the minor number is a parameter passed to the driver to let it know which specific device is being accessed. Where a device can be accessed as either a block or character device, the minor numbers for the two options usually differ by a single bit. )     </li>
+    </ul>
+  </blockquote>
+  <h3>1.9 Protection and Security</h3>
+  <ul>
+    <li><em><strong>Protection</strong></em> involves ensuring that no process access or interfere with resources to which they are not entitled, either by design or by accident. ( E.g. &quot;protection faults&quot; when pointer variables are misused. ) </li>
+    <li><em><strong>Security</strong></em> involves protecting the system from deliberate attacks, either from legitimate users of the system attempting to gain unauthorized access and privileges, or external attackers attempting to access or damage the system.  </li>
+  </ul>
+  <h3>1.10 Kernel Data Structures</h3>
+  <blockquote>
+    <h4>1.10.1 Lists, Stacks, and Queues</h4>
+    <p align="center"><img src="images/Chapter1/1_13_SinglyLinkedList.jpg"><br>
+    <strong>Figure 1.13 - Singly linked list</strong></p>
+<p align="center"><img src="images/Chapter1/1_14_DoublyLinkedList.jpg"><br>
+  <strong>Figure 1.14 - Doubly linked list</strong></p>
+<p align="center"><img src="images/Chapter1/1_15_CircularlyLinkedList.jpg"><br>
+  <strong>Figure 1.15 - Circularly linked list</strong></p>
+<h4>1.10.2 Trees</h4>
+    <p align="center"><img src="images/Chapter1/1_16_BinarySearchTree.jpg"><br>
+    <strong>Figure 1.16 - Binary search trees</strong></p>
+<h4>1.10.3 Hash Functions and Maps</h4>
+    <p align="center"><img src="images/Chapter1/1_17_HashMap.jpg"><br>
+    <strong>Figure 1.17 - Hash map</strong></p>
+<h4>1.10.4 Bitmaps</h4>
+    <ul>
+      <li>A string of 1s and 0s used to keep track of the boolean state of a collection of objects, such as the free state of blocks on a disk or pages in memory..</li>
+    </ul>
+</blockquote>
+<h3>1.11 Computing Environments</h3>
+  <blockquote>
+    <h4>1.11.1 Traditional Computing</h4>
+    <h4>1.11.2 Mobile Computing</h4>
+    <ul>
+      <li>Computing on small handheld devices such as smart phones or tablets. ( As opposed to laptops, which still fall under traditional computing. )</li>
+      <li>May take advantage of additional built-in sensors, such as GPS, tilt, compass, and inertial movement.</li>
+      <li>Typically connect to the Internet using wireless networking ( IEEE 802.11 ) or cellular telephone technology.</li>
+      <li>Limited in storage capacity, memory capacity, and computing power relative to a PC.</li>
+      <li>Generally uses slower processors, that consume less battery power and produce less heat.</li>
+      <li>The two dominant OSes today are Google Android and Apple iOS.</li>
+    </ul>
+    <h4>1.11.3 Distributed Systems</h4>
+    <ul>
+      <li>Distributed Systems consist of multiple, possibly heterogeneous, computers connected together via a network and cooperating in some way, form, or fashion.</li>
+      <li>Networks may range from small tight LANs to broad reaching WANs.
+        <ul>
+          <li>WAN = Wide Area Network, such as an international corporation</li>
+          <li>MAN =Metropolitan Area Network, covering a region the size of a city for example.</li>
+          <li>LAN =Local Area Network, typical of a home, business, single-site corporation, or university campus.</li>
+          <li>PAN = Personal Area Network, such as the bluetooth connection between your PC, phone, headset, car, etc.</li>
+        </ul>
+      </li>
+      <li>Network access speeds, throughputs, reliabilities, are all important issues.</li>
+      <li>OS view of the network may range from just a special form of file access to complex well-coordinated network operating systems.</li>
+      <li>Shared resources may include files, CPU cycles, RAM, printers, and other resources. </li>
+    </ul>
+    <h4>1.11.4 Client-Server Computing</h4>
+    <ul>
+      <li>A defined server provides services ( HW or SW ) to other systems which serve as clients. ( Technically clients and servers are processes, not HW, and may co-exist on the same physical computer. )</li>
+      <li>A process may act as both client and server of either the same or different resources.</li>
+      <li>Served resources may include disk space, CPU cycles, time of day, IP name information, graphical displays ( X Servers ), or other resources. </li>
+    </ul>
+    <blockquote>
+      <p align="center"><img src="images/Chapter1/1_18_ClientServer.jpg"><br>
+      <strong>Figure 1.18 - General structure of a client-server system</strong></p>
+</blockquote>
+    <h4>1.11.5 Peer-to-Peer Computing</h4>
+    <ul>
+      <li>Any computer or process on the network may provide services to any other which requests it. There is no clear &quot;leader&quot; or overall organization. </li>
+      <li>May employ a central &quot;directory&quot; server for looking up the location of resources, or may use peer-to-peer searching to find resources.</li>
+      <li>E.g. Skype uses a central server to locate a desired peer, and then further communication is peer to peer.</li>
+    </ul>
+    <blockquote>
+      <p align="center"><img src="images/Chapter1/1_19_PeerToPeer.jpg"><br>
+      <strong>Figure 1.19 - Peer-to-peer system with no centralized service</strong></p>
+</blockquote>
+    <h4>1.11.6 Virtualization</h4>
+    <ul>
+      <li>Allows one or more &quot;guest&quot; operating systems to run on virtual machines hosted by a single physical machine and the virtual machine manager.</li>
+      <li>Useful for cross-platform development and support.</li>
+      <li>For example, a student could run UNIX on a virtual machine, hosted by a virtual machine manager on a Windows based personal computer. The student would have full root access to the virtual machine, and if it crashed, the underlying Windows machine should be unaffected.</li>
+      <li>System calls have to be caught by the VMM and translated into ( different ) system calls made to the real underlying OS.</li>
+      <li>Virtualization can slow down program that have to run through the VMM, but can also speed up some things if virtual hardware can be accessed through a cache instead of a physical device.</li>
+      <li>Depending on the implementation, programs can also run simultaneously on the native OS, bypassing the virtual machines.</li>
+    </ul>
+    <p align="center"><img src="images/Chapter1/1_20_VMware.jpg"><br>
+    <strong>Figure 1.20 - VMWare</strong></p>
+    <ul>
+      <li>To run Linux on a Windows system using VMware, follow these steps:
+        <ol>
+          <li>Download the free &quot;VMware Player&quot; tool from <a href="http://www.vmware.com/download/player">http://www.vmware.com/download/player</a> and install it on your system</li>
+          <li>Choose a Linux version from among hundreds of virtual machine images at <a href="http://www.vmware.com/appliances">http://www.vmware.com/appliances</a></li>
+          <li>Boot the virtual machine within VMware Player.</li>
+        </ol>
+      </li>
+    </ul>
+    <p >&nbsp;</p>
+    <h4>1.11.7 Cloud Computing</h4>
+    <ul>
+      <li>Delivers computing, storage, and applications as a service over a network.</li>
+      <li>Types of cloud computing:
+        <ul>
+          <li>Public cloud - Available to anyone willing to pay for the service.</li>
+          <li>Private cloud - Run by a company for internal use only.</li>
+          <li>Hybrid cloud - A cloud with both public and private components.</li>
+          <li>Software as a Service - SaaS - Applications such as word processors available via the Internet</li>
+          <li>Platform as a Service - PaaS - A software stack available for application use, such as a database server</li>
+          <li>Infrastructure as a Service - IaaS - Servers or storage available on the Internet, such as backup servers, photo storage, or file storage.</li>
+          <li>Service providers may provide more than one type of service</li>
+        </ul>
+      </li>
+      <li>Clouds may contain thousands of physical computers, millions of virtual ones, and petabytes of total storage.</li>
+      <li>Web hosting services may offer ( one or more ) virtual machine(s) to each of their clients.</li>
+    </ul>
+    <p align="center"><img src="images/Chapter1/1_21_CloudComputing.jpg"><br>
+    <strong>Figure 1.21 - Cloud computing</strong></p>
+<h4>1.11.8 Real-Time Embedded Systems</h4>
+    <ul>
+      <li>Embedded into devices such as automobiles, climate control systems, process control, and even toasters and refrigerators.</li>
+      <li>May involve specialized chips, or generic CPUs applied to a particular task. ( Consider the current price of 80286 or even 8086 or 8088 chips, which are still plenty powerful enough for simple electronic devices such as kids toys. )</li>
+      <li>Process control devices require real-time ( interrupt driven ) OSes. Response time can be critical for many such devices.</li></ul>
+  </blockquote>
+<h3>1.12 Open-Source Operating Systems</h3>
+  <ul>
+    <li>( For more information on the	Flourish conference held at UIC on the subject of Free Libre and Open Source Software , visit <a href="http://www.flourishconf.com">http://www.flourishconf.com</a> )</li>
+    <li>Open-Source software is published ( sometimes sold ) with the source code, so that anyone can see and optionally modify the code.</li>
+    <li>Open-source SW is often developed and maintained by a small army of loosely connected often unpaid programmers, each working towards the common good.</li>
+    <li>Critics argue that open-source SW can be buggy, but proponents counter that bugs are found and fixed quickly, since there are so many pairs of eyes inspecting all the code.</li>
+    <li>Open-source operating systems are a good resource for studying OS development, since students can examine the source code and even change it and re-compile the changes.</li>
+  </ul>
+<blockquote>
+    <h4>1.12.1 History</h4>
+    <ul>
+      <li>At one time ( 1950s ) a lot of code was open-source.</li>
+      <li>Later, companies tried to protect the privacy of their code, particularly sensitive issues such as copyright protection algorithms.</li>
+      <li>In 1983 Richard Stallman started the GNU project to produce an open-source UNIX.</li>
+      <li>He later published the GNU Manifesto, arguing that ALL software should be open-source, and founded the <a href="http://www.fsf.org/">Free Software Foundation</a> to promote open-source development.</li>
+      <li>FSF and GNU use the <a href="http://www.gnu.org/copyleft/gpl.html">GNU General Public License</a> which essentially states that all users of the software have full rights to copy and change the SW however they wish, so long as anything they distribute further contain the same license agreement. ( Copylefting )</li>
+    </ul>
+  <h4>1.12.2 Linux</h4>
+    <ul>
+      <li>Developed by Linus Torvalds in Finland in 1991 as the first full operating system developed by GNU.</li>
+      <li>Many different distributions of Linux have evolved from Linus's original, including RedHat, SUSE, Fedora, Debian, Slackware, and Ubuntu, each geared toward a different group of end-users and operating environments.</li>
+      <li>To run Linux on a Windows system using VMware, follow these steps:
+        <ol>
+          <li>Download the free &quot;VMware Player&quot; tool from <a href="http://www.vmware.com/download/player">http://www.vmware.com/download/player</a> and install it on your system</li>
+          <li>Choose a Linux version from among hundreds of virtual machine images at <a href="http://www.vmware.com/appliances">http://www.vmware.com/appliances</a></li>
+          <li>Boot the virtual machine within VMware Player.</li>
+        </ol>
+      </li>
+    </ul>
+  <h4>1.12.3 BSD UNIX</h4>
+    <ul>
+      <li>UNIX was originally developed at ATT Bell labs, and the source code made available to computer science students at many universities, including the University of California at Berkeley, UCB.</li>
+      <li>UCB students developed UNIX further, and released their product as BSD UNIX in both binary and source-code format.</li>
+      <li>BSD UNIX is not open-source, however, because a license is still needed from ATT.</li>
+      <li>In spite of various lawsuits, there are now several versions of BSD UNIX, including Free BSD, NetBSD, OpenBSD, and DragonflyBSD</li>
+      <li>The source code is located in /usr/src.</li>
+      <li>The core of the Mac operating system is Darwin, derived from BSD UNIX, and is available at <a href="http://developer.apple.com/opensource/index.html">http://developer.apple.com/opensource/index.html</a></li>
+    </ul>
+  <h4>1.13.4 Solaris</h4>
+    <ul>
+      <li>Solaris is the UNIX operating system for computers from Sun Microsystems.</li>
+      <li>Solaris was originally based on BSD UNIX, and has since migrated to ATT SystemV as its basis.</li>
+      <li>Parts of Solaris are now open-source, and some are not because they are still covered by ATT copyrights.</li>
+      <li>It is possible to change the open-source components of Solaris, re-compile them, and then link them in with binary libraries of the copyrighted portions of Solaris.</li>
+      <li>Open Solaris is available from <a href="http://www.opensolaris.org/os/">http://www.opensolaris.org/os/</a></li>
+      <li>Solaris also allows viewing of the source code online, without having to download and unpack the entire package.</li>
+    </ul>
+  <h4>1.13.5 Utility </h4>
+  <ul>
+      <li>The free software movement is gaining rapidly in popularity, leading to thousands of ongoing projects involving untold numbers of programmers.</li>
+      <li>Sites such as <a href="http://freshmeat.net/">http://freshmeat.net/</a> and <a href="http://distrowatch.com/">http://distrowatch.com/</a> provide portals to many of these projects.</li>
+  </ul>
+  </blockquote>
+<h3>1.14 Summary</h3>
+<blockquote>&nbsp; </blockquote>
+  <blockquote>&nbsp;</blockquote>
+  <blockquote>&nbsp; </blockquote>
+</BODY>
+</HTML>

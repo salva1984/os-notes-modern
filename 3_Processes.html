@@ -1,0 +1,686 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="Processes course notes for operating systems.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: Processes</TITLE><style type="text/css">
+<!--
+.style1 {font-family: "Courier New", Courier, monospace}
+.codetext {
+	font-family: Courier New, Courier, monospace;
+}
+-->
+  </style></HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  Processes
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Ninth Edition &quot;, Chapter 3
+</OL>
+
+<h3>3.1 Process Concept</h3>
+<ul>
+  <li>A process is an instance of a program in execution.</li>
+  <li>Batch systems work in terms of &quot;jobs&quot;. Many modern process concepts are still expressed in terms of jobs, ( e.g. job scheduling ), and the two terms are often used interchangeably.  </li>
+</ul>
+<blockquote>
+  <h4>3.1.1 The Process</h4>
+  <ul>
+    <li>Process memory is divided into four sections as shown in Figure 3.1 below:
+      <ul>
+        <li>The text section comprises the compiled program code, read in from non-volatile storage when the program is launched. </li>
+        <li>The data section stores global and static variables,   allocated and initialized prior to executing main. </li>
+        <li>The heap is used for dynamic memory allocation, and is managed via calls to new, delete, malloc, free, etc. </li>
+        <li>The stack is used for local variables. Space on the stack is reserved for local variables when they are declared ( at function entrance or elsewhere, depending on the language ), and the space is freed up when the variables go out of scope. Note that the stack is also used for function return values, and the exact mechanisms of stack management may be language specific. </li>
+        <li>Note that the stack and the heap start at opposite ends of the process's free space and grow towards each other. If they should ever meet, then either a stack overflow error will occur, or else a call to new or malloc will fail due to insufficient memory available.</li>
+      </ul>
+    </li>
+    <li>When processes are swapped out of memory and later restored, additional information must also be stored and restored. Key among them are the program counter and the value of all program registers. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter3/3_01_Process_Memory.jpg" width="237" height="381"><br>
+  <strong>Figure 3.1 - A process in memory</strong></p>
+<h4>3.1.2 Process State</h4>
+  <ul>
+    <li>Processes may be in one of 5 states, as shown in Figure 3.2 below.
+      <ul>
+        <li><strong>New</strong> - The process is in the stage of being created.</li>
+        <li><strong>Ready </strong>- The process has all the resources available that it needs to run, but the CPU is not currently working on this process's instructions.</li>
+        <li><strong>Running </strong>- The CPU is working on this process's instructions.</li>
+        <li><strong>Waiting</strong> - The process cannot run at the moment, because it is waiting for some resource to become available or for some event to occur. For example the process may be waiting for keyboard input, disk access request, inter-process messages, a timer to go off, or a child process to finish. </li>
+        <li><strong>Terminated - </strong>The process has completed.</li>
+      </ul>
+    </li>
+    <li>The load average reported by the &quot;w&quot; command indicate the average number of processes in the &quot;Ready&quot; state over the last 1, 5, and 15 minutes, i.e. processes who have everything they need to run but cannot because the CPU is busy doing something else.</li>
+    <li>Some systems may have other states besides the ones listed here.   </li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_02_ProcessState.jpg" width="652" height="254"><br>
+    <strong>Figure 3.2 - Diagram of process state</strong></p>
+</blockquote>
+  <h4>3.1.3 Process Control Block</h4>
+  <p>For each process there is a Process Control Block, PCB, which stores the following ( types of ) process-specific information, as illustrated in Figure 3.1. ( Specific details may vary from system to system. ) </p>
+  <ul>
+    <li><strong>Process State</strong> - Running, waiting, etc., as discussed above.</li>
+    <li><strong>Process ID</strong>, and parent process ID.    </li>
+    <li><strong>CPU registers and Program Counter</strong> - These need to be saved and restored when swapping processes in and out of the CPU.</li>
+    <li><strong>CPU-Scheduling information</strong> - Such as priority information and pointers to scheduling queues.</li>
+    <li><strong>Memory-Management information</strong> - E.g. page tables or segment tables.</li>
+    <li><strong>Accounting information</strong> - user and kernel CPU time consumed, account numbers, limits, etc.</li>
+    <li><strong>I/O Status information</strong> - Devices allocated, open file tables, etc. </li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_03_PCB.jpg" width="175" height="285"><br>
+    <strong>Figure 3.3 - Process control block ( PCB )</strong></p>
+<p align="center"><img src="images/Chapter3/3_04_ProcessSwitch.jpg" width="640" height="523"><br>
+  <strong>Figure 3.4 - Diagram showing CPU switch from process to process</strong></p>
+<p align="center"><img src="images/Chapter3/3_05_LinuxProcesses.jpg" width="738" height="1156"><br>
+  <strong>Unnumbered side bar</strong></p>
+<h3 align="left">Digging Deeper: <a href="http://lxr.linux.no/#linux+v3.11/include/linux/sched.h#L1027">The Linux task_struct definition in sched.h</a> ( See also the top of that file. )</h3>
+  </blockquote>
+  <h4> 3.1.4 Threads</h4>
+  <ul>
+    <li>Modern systems allow a single process to have multiple threads of execution, which execute concurrently. Threads are covered extensively in the next chapter. </li>
+  </ul>
+</blockquote>
+<h3>3.2 Process Scheduling</h3>
+<ul>
+  <li>The two main objectives of the process scheduling system are to keep the CPU busy at all times and to deliver &quot;acceptable&quot; response times for all programs, particularly for interactive ones.</li>
+  <li>The process scheduler must  meet these objectives by implementing suitable policies for swapping processes in and out of the CPU. </li>
+  <li>( Note that these objectives can be conflicting. In particular, every time the system steps in to swap processes it takes up time on the CPU to do so, which is thereby &quot;lost&quot; from doing any useful productive work. ) </li>
+</ul>
+<blockquote>
+  <h4>3.2.1 Scheduling Queues</h4>
+  <ul>
+    <li>All processes are stored in the <strong>job queue.</strong></li>
+    <li>Processes in the Ready state are placed in the <strong>ready queue.</strong></li>
+    <li>Processes waiting for a device to become available or to deliver data are placed in <strong>device queues</strong>. There is generally a separate device queue for each device.</li>
+    <li>Other queues may also be created and used as needed.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_05_Queues.jpg" width="682" height="593">     <br>
+      <strong>Figure 3.5
+    - The ready queue and various I/O device queues</strong></p>
+  </blockquote>
+  <h4>3.2.2 Schedulers</h4>
+  <ul>
+    <li>A <strong>long-term scheduler</strong> is typical of a batch system or a very heavily loaded system. It runs infrequently, (&nbsp;such as when one process ends selecting one more to be loaded in from disk in its place ), and can afford to take the time to implement intelligent and advanced scheduling algorithms.</li>
+    <li>The <strong>short-term scheduler</strong>, or CPU Scheduler, runs very frequently, on the order of 100 milliseconds, and must very quickly swap one process out of the CPU and swap in another one.</li>
+    <li>Some systems also employ a<strong> medium-term scheduler</strong>. When system loads get high, this scheduler will swap one or more processes out of the ready queue system for a few seconds, in order to allow smaller faster jobs to finish up quickly and clear the system. See the differences in Figures 3.7 and 3.8 below.</li>
+    <li>An efficient scheduling system will select a good <strong>process mix</strong> of <strong>CPU-bound</strong> processes and <strong>I/O bound</strong> processes.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_06_QueueingDiagram.jpg" width="657" height="379"><br>
+      <strong>Figure 3.6 - Queueing-diagram representation of process scheduling</strong>
+    </p>
+    <p align="center"><img src="images/Chapter3/3_07_QueuingDiagram2.jpg" width="681" height="242">    <br>
+    <strong>Figure 3.7 - Addition of a medium-term scheduling to the queueing diagram</strong></p>
+  </blockquote>
+  <h4>3.2.3 Context Switch</h4>
+  <ul>
+    <li>Whenever an interrupt arrives, the CPU must do a <strong>state-save</strong> of the currently running process, then switch into kernel mode to handle the interrupt, and then do a <strong>state-restore</strong> of the interrupted process.</li>
+    <li>Similarly, a <strong>context switch</strong> occurs when the time slice for one process has expired and a new process is to be loaded from the ready queue. This will be instigated by a timer interrupt, which will then cause the current process's state to be saved and the new process's  state to be restored.</li>
+    <li>Saving and restoring states involves saving and restoring all of the registers and program counter(s), as well as the process control blocks described above.</li>
+    <li>Context switching happens VERY VERY frequently, and the overhead of doing the switching is just lost CPU time, so context switches ( state saves &amp; restores ) need to be as fast as possible. Some hardware has special provisions for speeding this up, such as a single machine instruction for saving or restoring all registers at once. </li>
+    <li>Some Sun hardware actually has multiple sets of registers, so the context switching can be speeded up by merely switching which set of registers are currently in use. Obviously there is a limit as to how many processes can be switched between in this manner, making it attractive to implement the medium-term scheduler to swap some processes out as shown in Figure 3.8 above.  </li></ul>
+  <div align="center"><img src="images/Chapter3/3_MultitaskingMobileSystems.jpg" width="772" height="994"></div>
+</blockquote>
+<h3>3.3 Operations on Processes</h3>
+<blockquote>
+  <h4>3.3.1 Process Creation</h4>
+  <ul>
+    <li>Processes may create other processes through appropriate system calls, such as <strong>fork</strong> or <strong>spawn</strong>. The process which does the creating is termed the <strong>parent</strong> of the other process, which is termed its <strong>child</strong>.</li>
+    <li>Each process is given an integer identifier, termed its<strong> process identifier</strong>, or PID. The parent PID ( PPID ) is also stored for each process.  </li>
+    <li>On typical UNIX systems the process scheduler is termed <strong>sched</strong>, and is given PID 0. The first thing it does at system startup time is to launch <strong>init</strong>, which gives that process PID 1.   Init then launches all system daemons and user logins, and becomes the ultimate parent of all other processes. Figure 3.9 shows a typical process tree for a Linux system, and other systems will have similar though not identical trees:</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_08_ProcessTree.jpg" width="865" height="408"><br>
+    <strong>Figure 3.8 - A tree of processes on a typical Linux system</strong></p>
+</blockquote>
+  <ul>
+    <li>Depending on system implementation, a child process may receive some amount of shared resources with its parent. Child processes may or may not be limited to a subset of the resources originally allocated to the parent, preventing runaway children from consuming all of a certain system resource.</li>
+    <li>There are two options for the parent process after creating the child:
+      <ol>
+        <li>Wait for the child process to terminate before proceeding. The parent makes a  wait( ) system call, for either a specific child or for any   child, which causes the parent process to block until the wait( ) returns. UNIX shells normally wait for their children to complete before issuing a new prompt. </li>
+        <li>Run concurrently with the child, continuing to process without waiting. This is the operation seen when a UNIX shell runs a process as a background task. It is also possible for the parent to run for a while, and then wait for the child later, which might occur in a sort of a parallel processing operation. ( E.g. the parent may fork off a number of children without waiting for any of them, then do a little work of its own, and then wait for the children. ) </li>
+      </ol>
+    </li>
+    <li>Two possibilities for the address space of the child relative to the parent:
+      <ol>
+        <li>The child may be an exact duplicate of the parent, sharing the same program and data segments in memory. Each will have their own PCB, including program counter, registers, and PID. This is the behavior of the <strong>fork</strong> system call in UNIX. </li>
+        <li>The child process may have a new program   loaded into its address space, with all new code and data segments. This is the behavior of the <strong>spawn</strong> system calls in Windows. UNIX systems implement this as a second step, using the <strong>exec</strong> system call.</li>
+      </ol>
+    </li>
+    <li>Figures 3.10 and 3.11 below shows the fork and exec process on a UNIX system.  Note that the <strong>fork</strong> system call returns the PID of the processes child to each process - It returns a zero to the child process and a non-zero child PID to the parent, so the return value indicates which process is which. Process IDs can be looked up any time for the current process or its direct parent using the getpid( ) and getppid( ) system calls respectively.</li>
+    <blockquote>
+      <p align="center"><img src="images/Chapter3/3_10_C_fork.jpg" width="732" height="746"><br>
+      <strong>Figure 3.9 Creating a separate process using the UNIX fork( ) system call.</strong>      </p>
+      <p align="center"><img src="images/Chapter3/3_10_ProcessCreation.jpg" width="720" height="118"><br>
+      <strong>Figure 3.10 - Process creation using the fork( ) system call</strong></p>
+    </blockquote>
+    <li>Related man pages:
+      <ul>
+        <li><a href="http://linuxmanpages.com/man2/fork.2.php">fork( 2 )</a></li>
+        <li><a href="http://linuxmanpages.com/man3/exec.3.php">exec( 3 )</a></li>
+        <li><a href="http://linuxmanpages.com/man2/wait.2.php">wait( 2 )</a></li>
+      </ul>
+    </li>
+    <blockquote>
+      <p>&nbsp;</p>
+    </blockquote>
+    <li>Figure 3.12 shows the more complicated process for Windows, which must provide all of the parameter information for the new process as part of the forking process.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_12_Win32Fork.jpg" width="744" height="994"> <br>
+      <strong>Figure 3.11</strong>
+    </p>
+  </blockquote>
+  <h4>3.3.2 Process Termination</h4>
+  <ul>
+    <li>Processes may request their own termination by making the <strong>exit( ) </strong> system call, typically returning an int. This int is passed along to the parent if it is doing a <strong>wait( )</strong>, and is typically zero on successful completion and some non-zero code in the event of problems.
+      <ul>
+        <li>child code:        
+            <pre>
+            int exitCode;
+            exit( exitCode );  // return exitCode; has the same effect when executed from main( )</pre>
+        </li>
+      
+        <li>parent code:
+            <pre>
+            pid_t pid;
+            int status
+            pid = wait( &amp;status ); 
+            // pid indicates which child exited. exitCode in low-order bits of status
+            // macros can test the high-order bits of status for why it stopped</pre>
+        </li>
+      </ul>
+    </li>
+    <li>Processes may also be terminated by the system for a variety of reasons, including:
+      <ul>
+        <li>The inability of the system to deliver necessary system resources.</li>
+        <li>In response to a KILL command, or other un handled process interrupt.</li>
+        <li>A parent may kill its children if the task assigned to them is no longer needed.</li>
+        <li>If the parent exits, the system may or may not allow the child to continue without a parent. ( On UNIX systems, orphaned processes are generally inherited by init, which then proceeds to kill them. The UNIX <em><strong>nohup</strong></em> command allows a child to continue executing after its parent has exited. )</li>
+      </ul>
+    </li>
+    <li>When a process terminates, all of its system resources are freed up, open files flushed and closed, etc. The process termination status and execution times are returned to the parent if the parent is waiting for the child to terminate, or eventually returned to init if the process becomes an orphan. ( Processes which are trying to terminate but which cannot because their parent is not waiting for them are termed <strong>zombies</strong>. These are eventually inherited by init as orphans and killed off. Note that modern UNIX shells do not produce as many orphans and zombies as older systems used to. )       </li>
+  </ul>
+</blockquote>
+<h3>3.4 Interprocess Communication</h3>
+<ul>
+  <li><strong>Independent Processes</strong> operating concurrently on a systems are those that can neither affect other processes or be affected by other processes.</li>
+  <li>
+    <strong>Cooperating Processes</strong> are those that can affect or be affected by other processes. There are several reasons why cooperating processes are allowed:
+      <ul>
+        <li>Information Sharing - There may be several processes which need access to the same file for example. (&nbsp;e.g.&nbsp;pipelines. ) </li>
+        <li>Computation speedup - Often a solution to a problem can be solved faster if the problem can be broken down into sub-tasks to be solved simultaneously ( particularly when multiple processors are involved. )</li>
+        <li>Modularity - The most efficient architecture may be to break a system down into cooperating modules. (&nbsp;E.g. databases with a client-server architecture.&nbsp;)  </li>
+        <li>Convenience - Even a single user may be multi-tasking, such as editing, compiling, printing, and running the same code in different windows.  </li>
+      </ul>
+   
+  </li>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_ChromeBrowserArchitecture.jpg" width="770" height="1172"></p>
+  </blockquote>
+  <li>Cooperating processes require some type of inter-process communication, which is most commonly one of two types: Shared Memory systems or Message Passing systems. Figure 3.13 illustrates the difference between the two systems:</li>
+</ul>
+
+  <p align="center"><img src="images/Chapter3/3_12_CommunicationsModels.jpg" width="511" height="322"><br>
+  <strong>Figure 3.12 - Communications models: (a) Message passing. (b) Shared memory.</strong></p>
+
+<ul>
+  <li>Shared Memory is faster once it is set up, because no system calls are required and access occurs at normal memory speeds. However it is more complicated to set up, and doesn't work as well across multiple computers. Shared memory is generally preferable when large amounts of information must be shared quickly on the same computer. </li>
+  <li>Message Passing requires system calls for every message transfer, and is therefore slower, but it is simpler to set up and works well across multiple computers. Message passing is generally preferable when the amount and/or frequency of data transfers is small, or when multiple computers are involved. </li>
+</ul>
+<blockquote>
+  <h4>3.4.1 Shared-Memory Systems</h4>
+  <ul>
+    <li>In general the memory to be shared in a shared-memory system is initially within the address space of a particular process, which needs to make system calls in order to make that memory publicly available to one or more other processes.</li>
+    <li>Other processes which wish to use the shared memory must then make their own system calls to attach the shared memory area onto their address space.</li>
+    <li>Generally a few messages must be passed back and forth between the cooperating processes first in order to set up and coordinate the shared memory access. </li>
+  </ul>
+  <h4>Producer-Consumer Example Using Shared Memory</h4>
+  <ul>
+    <li>This is a classic example, in which one process is producing data and another process is consuming the data. (&nbsp;In this example in the order in which it is produced, although that could vary.&nbsp;)</li>
+    <li>The data is passed via an intermediary buffer, which may be either unbounded or bounded. With a bounded buffer the producer may have to wait until there is space available in the buffer, but with an unbounded buffer the producer will never need to wait. The consumer may need to wait in either case until there is data available.</li>
+    <li>This example uses shared memory and a circular queue. Note in the code below that only the producer changes &quot;in&quot;, and only the consumer changes &quot;out&quot;, and that they can never be accessing the same array location at the same time.</li>
+  
+    <li>First the following data is set up in the shared memory area:
+      <blockquote>
+        <p class="style1">#define BUFFER_SIZE 10</p>
+        <p class="style1">typedef struct {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;. . .<br>
+          } item; </p>
+        <p class="style1">item buffer[ BUFFER_SIZE ];<br>
+          int in = 0;<br>
+          int out = 0; </p>
+      </blockquote>
+    </li>
+    <li>Then the producer process. Note 
+      that the buffer is full when &quot;in&quot; is one less than &quot;out&quot; in a circular sense:
+      <blockquote>
+        <p class="style1">// Code from Figure 3.13 </p>
+        <span class="style1">item nextProduced; </span>
+<p class="style1">while( true ) {</p>
+      </blockquote>
+    </li>
+    <blockquote>
+      <blockquote>
+        <p class="style1">/* Produce an item and store it in nextProduced */<br>
+          nextProduced = makeNewItem( . . . ); <br>
+          <br>
+          /* Wait for space to become available */ <br>
+          while( ( ( in + 1 ) % BUFFER_SIZE ) == out )<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          ; /* Do nothing */<br>
+          <br>
+          /* And then store the item and repeat the loop. */ <br>
+          buffer[ in ] = nextProduced;<br>
+          in = ( in + 1 ) % BUFFER_SIZE;</p>
+      </blockquote>
+      <p class="style1">	} </p>
+    </blockquote>
+    <li>Then the consumer process. Note 
+      that the buffer is empty when &quot;in&quot; is equal to  &quot;out&quot;: </li>
+    <blockquote>
+      <p class="style1">// Code from Figure 3.14</p>
+      <p class="style1">item nextConsumed; </p>
+      <p class="style1">while( true ) {</p>
+      <blockquote>
+        <p class="style1">/* Wait for an item to become available */ <br>
+          while( in == out )<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          ; /* Do nothing */</p>
+        <p class="style1">/* Get the next available item */ <br>
+          nextConsumed = buffer[ out ];<br>
+          out = ( out + 1 ) % BUFFER_SIZE;<br>
+          <br>
+          /* Consume the item in nextConsumed<br>
+         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( Do something with it ) */ </p>
+      </blockquote>
+      <p class="style1">}</p> 
+    </blockquote>
+  </ul>
+  <h4>3.4.2 Message-Passing Systems</h4>
+  <ul>
+    <li>Message passing systems must support at a minimum system calls for &quot;send message&quot; and &quot;receive message&quot;.</li>
+    <li>A communication link must be established between the cooperating processes before messages can be sent.</li>
+    <li>There are three key issues to be resolved in message passing systems as further explored in the next three subsections:
+      <ul>
+        <li>Direct or indirect communication ( naming )</li>
+        <li>Synchronous or asynchronous communication</li>
+        <li>Automatic or explicit buffering.      </li>
+      </ul>
+    </li>
+  </ul>
+  <blockquote>
+    <h5>3.4.2.1 Naming</h5>
+    <ul>
+      <li>With <strong>direct communication</strong> the sender must know the name of the receiver to which it wishes to send a message.
+        <ul>
+          <li>There is a one-to-one link between every sender-receiver pair.</li>
+          <li>For <strong>symmetric </strong>communication, the receiver must also know the specific name of the sender from which it wishes to receive messages. <br>
+          For <strong>asymmetric</strong> communications, this is not necessary.          </li>
+        </ul>
+      </li>
+      <li><strong>Indirect communication</strong> uses shared mailboxes, or ports.
+        <ul>
+          <li>Multiple processes can share the same mailbox or boxes.</li>
+          <li>Only one process can read any given message in a mailbox. Initially the process that creates the mailbox is the owner, and is the only one allowed to read mail in the mailbox, although this privilege may be transferred.
+            <ul>
+              <li>( Of course the process that reads the message can immediately turn around and place an identical message back in the box for someone else to read, but that may put it at the back end of a queue of messages. ) </li>
+            </ul>
+          </li>
+          <li>The OS must provide system calls to create and delete mailboxes, and to send and receive messages to/from mailboxes.       </li>
+        </ul>
+      </li>
+    </ul>
+    <h5>3.4.2.2 Synchronization</h5>
+    <ul>
+      <li>Either the sending or receiving of messages ( or neither or both ) may be either <strong>blocking</strong> or <strong>non-blocking</strong>.</li>
+    </ul>
+    <h5>3.4.2.3 Buffering</h5>
+    <ul>
+      <li>Messages are passed via queues, which may have one of three capacity configurations:
+        <ol>
+          <li><strong>Zero capacity</strong> - Messages cannot be stored in the queue, so senders must block until receivers accept the messages.</li>
+          <li><strong>Bounded capacity</strong>- There is a certain pre-determined finite capacity in the queue. Senders must block if the queue is full, until space becomes available in the queue, but may be either blocking or non-blocking otherwise.</li>
+          <li><strong>Unbounded capacity</strong> - The queue has a theoretical infinite capacity, so senders are never forced to block.   </li>
+        </ol>
+      </li>
+    </ul>
+  </blockquote>
+</blockquote>
+<p align="center"><img src="images/Chapter3/3_15_16_MessagePassing.jpg" width="582" height="514"></p>
+<h3>3.5 Examples of IPC Systems</h3>
+<blockquote>
+  <h4>3.5.1 An Example: POSIX Shared Memory ( Eighth Edition Version )</h4>
+  <ol>
+    <li>The first step in using shared memory is for one of the processes involved to allocate some shared memory, using shmget:
+      <blockquote>
+        <p><span class="style1">int segment_id = shmget( IPC_PRIVATE, size, S_IRUSR | S_IWUSR ); </span></p>
+        <ul>
+          <li>The first parameter specifies the key ( identifier ) of the segment. IPC_PRIVATE creates a new shared memory segment.</li>
+          <li>The second parameter indicates how big the shared memory segment is to be, in bytes.</li>
+          <li>The third parameter is a set of bitwise ORed flags. In this case the segment is being created for reading and writing.  </li>
+          <li>The return value of shmget is an integer identifier</li>
+        </ul>
+      </blockquote>
+    </li>
+  
+    <li>Any process which wishes to use the shared memory must <em>attach</em> the shared memory to their address space, using shmat:
+      <blockquote>
+        <p><span class="style1">char * shared_memory = ( char * ) shmat( segment_id, NULL, 0  ); </span></p>
+      </blockquote>
+      <ul>
+        <li>The first parameter specifies the key ( identifier ) of the segment that the process wishes to attach to its address space </li>
+        <li>The second parameter indicates where the process wishes to have the segment attached. NULL indicates that the system should decide. </li>
+        <li>The third parameter is a flag for read-only operation. Zero indicates read-write; One indicates readonly.</li>
+        <li>The return value of shmat is a void *, which the process can use ( type cast ) as appropriate. In this example it is being used as a character pointer. </li>
+      </ul>
+    </li>
+    <li>Then processes may access the memory using the pointer returned by shmat, for example using sprintf:    </li>
+    <blockquote>
+      <p><span class="style1">sprintf(  shared_memory, &quot;Writing to shared memory\n&quot; ); </span></p>
+    </blockquote>
+    <li>When a process no longer needs a piece of shared memory, it can be detached using shmdt:    </li>
+    <blockquote>
+      <p><span class="style1">shmdt(  shared_memory ); </span></p>
+    </blockquote>
+    <li>And finally the process that originally allocated the shared memory can remove it from the system suing shmctl.
+      <blockquote>
+        <p><span class="style1">shmctl(  segment_id, IPC_RMID ); </span></p>
+      </blockquote>
+    </li>
+    <li>Figure 3.16 from the eighth edition illustrates a complete program implementing shared memory on a POSIX system:</li>
+  </ol>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_16_POSIX_SharedMemory.jpg" width="778" height="908"></p>
+    <h4>3.5.1 An Example: POSIX Shared Memory ( Ninth Edition Version )</h4>
+    <ol>
+      <li>The ninth edition shows an alternate approach to shared memory in POSIX systems. Under this approach, the first step in using shared memory is to create a shared-memory object using shm_open( ),in a fashion similar to other file opening commands.  The name provided will be the name of the memory-mapped file.
+        <blockquote class="style1">shm_fd = shm_open( name,O_CREAT | O_RDRW,0666 );</blockquote>
+      </li>
+      <li>The next step is to set the size of the file using ftruncate:
+        <blockquote class="style1">ftruncate( shm_fd, 4096 );</blockquote>
+      </li>
+      <li>Finally the mmap system call maps the file to a memory address in the user program space.and makes it shared.  In this example the process that created the shared memory will be writing to it:
+        <blockquote class="style1">ptr = mmap( 0, SIZE,PROT_WRITE, MAP_SHARED, shm_fd, 0 );</blockquote>
+      </li>
+      <li>The &quot;borrower&quot; of the shared memory, ( not the one who created it ), calls <span class="style1">shm_open( )</span> and <span class="style1">mmap( )</span> with different arguments, skips the <span class="style1">ftruncate( )</span> step and unlinks ( removes ) the file name when it is done with it.    Note that the &quot;borrower&quot; must use the same file name as the &quot;lender&quot; who created it.  ( This information could have been passed using messages. )
+        <blockquote class="style1">shm_unlink( name );</blockquote>
+      </li>
+      <li>Note that writing to and reading from the shared memory is done with pointers and memory addresses ( sprintf ) in both the 9th and 8th edition versions, even though the 9th edition is illustrating memory mapping of a file.</li>
+      <li>Figures 3.17 and 3.18 from the ninth edition illustrate a complete program implementing shared memory on a POSIX system:</li>
+    </ol>
+    <p align="center"><img src="images/Chapter3/3_17_POSIX_ProducerSharedMemory.jpg" width="720" height="1036"></p>
+    <p align="center"><img src="images/Chapter3/3_18_POSIX_ConsumerSharedMemory.jpg" width="714" height="844"></p>
+  </blockquote>
+  <h4>3.5.2 An Example: Mach</h4>
+  <ul>
+    <li>Recall that the Mach kernel is a micro kernel, which performs few services besides delivering messages between other tasks ( both system tasks and user tasks. )</li>
+    <li>Most communication in Mach, including all system calls and inter-process communication is done via messages sent to mailboxes, also known as ports. </li>
+    <li>Whenever a task ( process ) is created, it automatically gets two special mailboxes: a Kernel mailbox, and a Notify mailbox.
+      <ul>
+        <li>The kernel communicates with the task using the Kernel mailbox.</li>
+        <li>The kernel sends notification of events to the Notify mailbox.   </li>
+      </ul>
+    </li>
+    <li>Three system calls are used for message transfer:
+      <ul>
+        <li>msg_send( ) sends a message to a mailbox</li>
+        <li>msg_receive( ) receives a message.</li>
+        <li>msg_rpc( ) sends a message and waits for exactly one message in response from the sender.</li>
+      </ul>
+    </li>
+    <li>Port_allocate( ) creates a new mailbox and the associated queue for holding messages ( size 8 by default. )</li>
+    <li>Only one task at a time can own or receive messages from any given mailbox, but these are transferable.</li>
+    <li>Messages from the same sender to the same receiver are guaranteed to arrive in FIFO order, but no guarantees are made regarding messages from multiple senders.</li>
+    <li>Messages consist of a fixed-length header followed by variable length data.
+      <ul>
+        <li>The header contains the mailbox number ( address ) of the receiver and the sender.</li>
+        <li>The data section consists of a list of typed data items, each containing a type, size, and value.</li>
+      </ul>
+    </li>
+    <li>If the receiver's mailbox is full, the sender has four choices:
+      <ol>
+        <li>Wait indefinitely until there is room in the mailbox.</li>
+        <li>Wait at most N milliseconds.</li>
+        <li>Do not wait at all.</li>
+        <li>Temporarily cache the message with the kernel, for delivery when the mailbox becomes available.
+          <ul>
+            <li>Only one such message can be pending at any given time from any given sender to any given receiver.</li>
+            <li>Normally only used by certain system tasks, such as the print spooler, which must notify the &quot;client&quot; of the completion of their job, but cannot wait around for the mailbox to become available.</li>
+          </ul>
+        </li>
+      </ol>
+    </li>
+    <li>Receive calls must specify the mailbox or mailbox set from which they wish to receive messages.</li>
+    <li>Port_status( ) reports the number of messages waiting in any given mailbox.</li>
+    <li>If there are no messages available in a mailbox ( set ), the receiver can either block for N milliseconds, or not block at all.</li>
+    <li>In order to avoid delays caused by copying messages ( multiple times ), Mach re-maps the memory space for the message from the sender's address space to the receiver's address space ( using virtual memory techniques to be covered later ), and does not actually move the message anywhere at all. ( When the sending and receiving task are both on the same computer. ) </li>
+  </ul>
+  <h4>3.5.3 An Example: Windows XP</h4>
+  <p align="center"><img src="images/Chapter3/3_19_ALPC_Windows.jpg" width="750" height="386"><br>
+  <strong>Figure 3.19 - Advanced local procedure calls in Windows</strong></p>
+</blockquote>
+<h3>3.6 Communication in Client-Server Systems</h3>
+<blockquote>
+  <h4>3.6.1 Sockets</h4>
+  <ul>
+    <li>A <strong>socket</strong> is an endpoint for communication. </li>
+    <li>Two processes communicating over a network often use a pair of connected sockets as a communication channel. Software that is designed for client-server operation may also use sockets for communication between two processes running on the same computer - For example the UI for a database program may communicate with the back-end database manager using sockets. ( If the program were developed this way from the beginning, it makes it very easy to port it from a single-computer system to a networked application. )</li>
+    <li>A socket is identified by an IP address concatenated with a port number, e.g. 200.100.50.5:80.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_20_Sockets.jpg" width="465" height="319"><br>
+      <strong>Figure 3.20 - Communication using sockets</strong>
+    </p>
+  </blockquote>
+  <ul>
+    <li>Port numbers below 1024 are considered to be <em>well-known</em>, and are generally reserved for common Internet services. For example, telnet servers listen to port 23, ftp servers to port 21, and web servers to port 80.</li>
+    <li>General purpose user sockets are assigned unused ports over 1024 by the operating system in response to system calls such as socket( ) or soctkepair( ).</li>
+    <li>Communication channels via sockets may be of one of two major forms:
+      <ul>
+        <li><strong>Connection-oriented ( TCP, Transmission Control Protocol )</strong> connections emulate a telephone connection. All packets sent down the connection are guaranteed to arrive in good condition at the other end, and to be delivered to the receiving process in the order in which they were sent. The TCP layer of the network protocol takes steps to verify all packets sent, re-send packets if necessary, and arrange the received packets in the proper order before delivering them to the receiving process. There is a certain amount of overhead involved in this procedure, and if one packet is missing or delayed, then any packets which follow will have to wait until the errant packet is delivered before they can continue their journey.</li>
+        <li><strong>Connectionless ( UDP, User Datagram Protocol ) </strong>emulate individual telegrams. There is no guarantee that any particular packet will get through undamaged ( or at all ), and no guarantee that the packets will get delivered in any particular order. There may even be duplicate packets delivered, depending on how the intermediary connections are configured. UDP transmissions are much faster than TCP, but applications must implement their own error checking and recovery procedures.</li>
+      </ul>
+    </li>
+    <li>Sockets are considered a low-level communications channel, and processes may often choose to use something at a higher level, such as those covered in the next two sections. </li>
+    <li>Figure 3.19 and 3.20 illustrate a client-server system for determining the current date using sockets in Java.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_19_20_JavaClientServer.jpg" width="754" height="1571"><br>
+    <strong>Figure 3.21 and Figure 3.22</strong></p>
+  </blockquote>
+  <h4>3.6.2 Remote Procedure Calls, RPC </h4>
+  <ul>
+    <li>The general concept of RPC is to make procedure calls similarly to calling on ordinary local procedures, except the procedure being called lies on a remote machine.</li>
+    <li>Implementation involves <em><strong>stubs</strong></em> on either end of the connection.
+      <ul>
+        <li>The local process calls on the stub, much as it would call upon a local procedure.</li>
+        <li>The RPC system packages up ( marshals ) the parameters to the procedure call, and transmits them to the remote system.</li>
+        <li>On the remote side, the RPC daemon accepts the parameters and calls upon the appropriate remote procedure to perform the requested work.</li>
+        <li>Any results to be returned are then packaged up and sent back by the RPC system to the local system, which then unpackages them and returns the results to the local calling procedure.</li>
+      </ul>
+    </li>
+    <li>One potential difficulty is the formatting of data on local versus remote systems. ( e.g. big-endian versus little-endian. ) The resolution of this problem generally involves an agreed-upon intermediary format, such as XDR ( external data representation. )</li>
+    <li>Another issue is identifying which procedure on the remote system a particular RPC is destined for.
+      <ul>
+        <li>Remote procedures are identified by <em>ports</em>, though not the same ports as the socket ports described earlier.</li>
+        <li>One solution is for the calling procedure to know the port number they wish to communicate with on the remote system. This is problematic, as the port number would be compiled into the code, and it makes it break down if the remote system changes their port numbers.</li>
+        <li>More commonly a <em>matchmaker</em> process is employed, which acts like a telephone directory service. The local process must first contact the matchmaker on the remote system ( at a well-known port number ), which looks up the desired port number and returns it. The local process can then use that information to contact the desired remote procedure. This operation involves an extra step, but is much more flexible. An example of the matchmaker process is illustrated in Figure 3.21 below.</li>
+      </ul>
+    </li>
+    <li>One common example of a system based on RPC calls is a networked file system. Messages are passed to read, write, delete, rename, or check status, as might be made for ordinary local disk access requests.</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter3/3_23_RPC.jpg" width="725" height="872">    <br>
+      <strong>Figure 3.23 - Execution of a remote procedure call ( RPC ).</strong>
+    </p>
+  </blockquote>
+  <h4>3.6.3 Pipes</h4>
+  <ul>
+    <li><em><strong>Pipes</strong></em> are one of the earliest and simplest channels of communications between ( UNIX ) processes.</li>
+    <li>There are four key considerations in implementing pipes:
+      <ol>
+        <li>Unidirectional or Bidirectional communication?</li>
+        <li>Is bidirectional communication half-duplex or full-duplex?</li>
+        <li>Must a relationship such as parent-child exist between the processes?</li>
+        <li>Can pipes communicate over a network, or only on the same machine?</li>
+      </ol>
+    </li>
+    <li>The following sections examine these issues on UNIX and Windows</li>
+  </ul>
+  <h5>3.6.3.1 Ordinary Pipes</h5>
+  <ul>
+    <li>Ordinary pipes are uni-directional, with a reading end and a writing end. ( If bidirectional communications are needed, then a second pipe is required. )</li>
+    <li>In UNIX ordinary pipes are created with the system call &quot;<span class="codetext">int pipe( int fd [ ] )</span>&quot;.
+<ul>
+        <li>The return value is 0 on success, -1 if an error occurs.</li>
+        <li>The int array must be allocated before the call, and the values are filled in by the pipe system call:
+          <ul>
+<li>fd[ 0 ] is filled in with a file descriptor for the reading end of the pipe</li>
+
+            <li>fd[ 1 ] is filled in with a file descriptor for the writing end of the pipe</li>
+          </ul>
+        </li>
+        <li>UNIX pipes are accessible as files, using standard read( ) and write( ) system calls.</li>
+        <li>Ordinary pipes are only accessible within the process that created them.
+          <ul>
+            <li>Typically a parent creates the pipe before forking off a child.</li>
+            <li>When the child inherits open files from its parent, including the pipe file(s), a channel of communication is established.</li>
+            <li>Each process ( parent and child ) should first close the ends of the pipe that they are not using. For example, if the parent is writing to the pipe and the child is reading, then the parent should close the reading end of its pipe after the fork and the child should close the writing end.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>Figure 3.22 shows an ordinary pipe in UNIX, and Figure 3.23 shows code in which it is used.</li>
+  </ul>
+  <p align="center"><img src="images/Chapter3/3_22_PipeFileDescriptors.jpg" width="715" height="266"><br>
+    <strong>Figure 3.24</strong>
+  </p>
+  <p align="center"><img src="images/Chapter3/3_2324_OrdinaryPipes.jpg" width="740" height="1500"><br>
+    <strong>Figure 3.25 and Figure 3.26</strong>
+  </p>
+  <ul>
+    <li>Ordinary pipes in Windows are very similar
+      <ul>
+        <li>Windows terms them <em><strong>anonymous</strong></em> pipes</li>
+        <li>They are still limited to parent-child relationships.</li>
+        <li>They are read from and written to as files.</li>
+        <li>They are created with <span class="codetext">CreatePipe( )</span> function, which takes additional arguments.</li>
+        <li>In Windows it is necessary to specify what resources a child inherits, such as pipes.</li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter3/3_2526AnonymousPipesParent.jpg" width="792" height="1567"><br>
+    <strong>Figure 3.27 and Figure 3.28</strong>
+  </p>
+  <p align="center"><img src="images/Chapter3/3_27_AnonymousPipesChild.jpg" width="805" height="644"><br>
+    <strong>Figure 3.29</strong>
+  </p>
+  <h5>3.6.3.2 Named Pipes</h5>
+  <ul>
+    <li>Named pipes support bidirectional communication, communication between non parent-child related processes, and persistence after the process which created them exits. Multiple processes can also share a named pipe, typically one reader and multiple writers.</li>
+    <li>In UNIX, named pipes are termed fifos, and appear as ordinary files in the file system.
+      <ul>
+        <li>( Recognizable by a &quot;p&quot; as the first character of a long listing, e.g. /dev/initctl )</li>
+        <li>Created with <span class="codetext">mkfifo( )</span> and manipulated with <span class="codetext">read( ), write( ), open( ), close( )</span>, etc.</li>
+        <li>UNIX named pipes are bidirectional, but half-duplex, so two pipes are still typically used for bidirectional communications.</li>
+        <li>UNIX named pipes still require that all processes be running on the same machine. Otherwise sockets are used.</li>
+      </ul>
+    </li>
+    <li>Windows named pipes provide richer communications.</li>
+    <li>Full-duplex is supported.</li>
+    <li>Processes may reside on the same or different machines</li>
+    <li>Created and manipulated using <span class="codetext">CreateNamedPipe(&nbsp;), ConnectNamedPipe(&nbsp;), ReadFile(&nbsp;),and WriteFile(&nbsp;).</span></li>
+  </ul>
+  <h4><a name="raceCondition"></a>Race Conditions ( Not from the book )</h4>
+  <blockquote>
+    <p>Any time there are two or more processes or threads operating concurrently, there is potential for a particularly difficult class of problems known as <em><strong>race conditions.</strong></em> The identifying characteristic of race conditions is that the performance varies depending on which process or thread executes their instructions before the other one, and this becomes a problem when the program runs correctly in some instances and incorrectly in others. Race conditions are notoriously difficult to debug, because they are unpredictable, unrepeatable, and may not exhibit themselves for years.</p>
+    <p>Here is an example involving a server and a client communicating via sockets:</p>
+    <p>1. First the server writes a greeting message to the client via the socket:</p>
+    <pre>     const int BUFFLENGTH = 100;
+     char buffer[ BUFFLENGTH ];
+     sprintf( buffer, &quot;Hello Client %d!&quot;, i );
+     write( clientSockets[ i ], buffer, strlen( buffer ) + 1 );</pre>
+<p>2. The client then reads the greeting into its own buffer. The client does not know for sure how long the message is, so it allocates a buffer bigger than it needs to be. The following will read all available characters in the socket, up to a maximum of BUFFLENGTH characters:</p>
+    <pre>     const int BUFFLENGTH = 100;
+     char buffer[ BUFFLENGTH ];
+     read( mysocket, buffer, BUFFLENGTH );
+     cout &lt;&lt; &quot;Client received: &quot; &lt;&lt; buffer &lt;&lt; &quot;\n&quot;; </pre>
+    <p>3. Now the server prepares a packet of work and writes that to the socket:</p>
+    <pre>     write( clientSockets[ i ], &amp; wPacket, sizeof( wPacket ) );</pre>
+    <p>4. And finally the client reads in the work packet and processes it:</p>
+    <pre>     read( mysocket, &amp; wPacket, sizeof( wPacket ) );</pre>
+    <p><strong>The Problem: </strong>The problem arises if the server executes step 3 before the client has had a chance to execute step 2, which can easily happen depending on process scheduling. In this case, when the client finally gets around to executing step 2, it will read in not only the original greeting, but also the first part of the work packet. And just to make things harder to figure out, the cout &lt;&lt; statement in step 2 will only print out the greeting message, since there is a null byte at the end of the greeting. This actually isn't even a problem at this point, but then later when the client executes step 4, it does not accurately read in the work packet because part of it has already been read into the buffer in step 2.</p>
+    <p><strong>Solution I: </strong>The easiest solution is to have the server write the entire buffer in step 1, rather than just the part filled with the greeting, as:</p>
+    <pre>     write( clientSockets[ i ], buffer, BUFFLENGTH );</pre>
+    <p>Unfortunately this solution has two problems: (1) It wastes bandwidth and time by writing more than is needed, and more importantly, (2) It leaves the code open to future problems if the BUFFLENGTH is not the same in the client and in the server.</p>
+    <p><strong>Solution II: </strong>A better approach for handling variable-length strings is to first write the length of the string, followed by the string itself as a separate write. Under this solution the server code changes to:</p>
+    <pre>     sprintf( buffer, &quot;Hello Client %d!&quot;, i );
+     int length = strlen( buffer ) + 1;
+     write( clientSockets[ i ], &amp;length, sizeof( int ) );
+     write( clientSockets[ i ], buffer, length );</pre>
+    <br>
+    and the client code changes to:
+    <pre>     int length;
+     if( read( mysocket, &amp;length, sizeof( int ) ) != sizeof( int ) ) {
+          perror( &quot;client read error: &quot; );
+          exit( -1 );
+     }
+
+     if( length &lt; 1 || length &gt; BUFFLENGTH ) {
+          cerr &lt;&lt; &quot;Client read invalid length = &quot; &lt;&lt; length &lt;&lt; endl;
+          exit( -1 );
+     }
+
+     if( read( mysocket, buffer, length ) != length ) {
+     perror( &quot;client read error: &quot; );
+     exit( -1 );
+     }
+
+     cout &lt;&lt; &quot;Client received: &quot; &lt;&lt; buffer &lt;&lt; &quot;\n&quot;;</pre>
+    <p>Note that the above solution also checks the return value from the read system call, to verify that the number of characters read is equal to the number expected. ( Some of those checks were actually in the original code, but were omitted from the notes for clarity. The real code also uses select( ) before reading, to verify that there are characters present to read and to delay if not. )</p>
+    <p>Note also that this problem could not be ( easily ) solved using the synchronization tools covered in chapter 6, because the problem is not really one of two processes accessing the same data at the same time.<br>
+    </p>
+  </blockquote>
+</blockquote>
+<h3>3.7 Summary</h3>
+<blockquote>
+  <blockquote>
+    <hr>
+  </blockquote>
+  <h4>OLD 3.6.3 Remote Method Invocation, RMI ( Optional, Removed from 8th edition )</h4>
+  <ul>
+    <li>RMI is the Java implementation of RPC for contacting processes operating on a different Java Virtual Machine, JVM, which may or may not be running on a different physical machine. </li>
+    
+    <li>There are two key differences between RPC and RMI, both based on the object-oriented nature of Java:
+      <ul>
+        <li>RPC accesses remote procedures or functions, in a procedural-programming paradigm. RMI accesses methods within remote Objects.</li>
+        <li>The data passed by RPC as function parameters are ordinary data only, i.e. ints, floats, doubles, etc. RMI also supports the passing of Objects.   </li>
+      </ul>
+    </li>
+    <li>RMI is implemented using stubs ( on the client side ) and skeletons ( on the servers side ), whose responsibility is to package ( marshall ) and unpack the parameters and return values being passed back and forth, as illustrated in Figures 3.22 and 3.23:</li>
+    <li>See the <a href="http://java.sun.com/j2se/1.5.0/docs/tooldocs/index.html#rmi">Java online documentation</a> for more details on RMI, including issues with value vs. reference parameter passing, and the requirements that certain passed data items be <em>Serializable.</em></li>
+  </ul>
+  <div align="center">
+    <p><img src="images/Chapter3/3_22_RMI.jpg" width="582" height="304"><br>
+      Figure omitted in 8th edition
+    </p>
+    <p><img src="images/Chapter3/3_23_MarshallingParameters.jpg" width="734" height="488"><br>
+      Figure omitted in 8th edition
+    </p>
+  </div>
+</blockquote>
+<h4>&nbsp;</h4>
+</BODY>
+</HTML>

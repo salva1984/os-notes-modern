@@ -1,0 +1,4 @@
+User-Agent: *
+Disallow: /xmlrpc.php
+Disallow: /wp-content/plugins/
+Disallow: /readme.html

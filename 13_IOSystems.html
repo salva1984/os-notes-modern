@@ -1,0 +1,372 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="I/O systems course notes.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: I/O Systems</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  I/O Systems 
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Eighth Edition &quot;, Chapter 13
+</OL>
+
+<h3>13.1 Overview</h3>
+<ul>
+  <li>Management of I/O devices is a very important part of the operating system - so important and so varied that entire I/O subsystems are devoted to its operation. (&nbsp;Consider the range of devices on a modern computer, from mice, keyboards, disk drives, display adapters, USB devices, network connections, audio I/O, printers, special devices for the handicapped, and many special-purpose peripherals. )</li>
+  <li>I/O Subsystems must contend with two (&nbsp;conflicting?&nbsp;) trends: (1) The gravitation towards standard interfaces for a wide range of devices, making it easier to add newly developed devices to existing systems, and (2) the development of entirely new types of devices, for which the existing standard interfaces are not always easy to apply. </li>
+  <li><em><strong>Device drivers</strong></em> are modules that can be plugged into an OS to handle a particular device or category of similar devices. </li>
+</ul>
+<h3>13.2 I/O Hardware</h3>
+<ul>
+  <li>I/O devices can be roughly categorized as storage, communications, user-interface, and other</li>
+  <li>Devices communicate with the computer via signals sent over wires or through the air.</li>
+  <li>Devices connect with the computer via <em><strong>ports</strong></em>, e.g. a serial or parallel port.</li>
+  <li>A common set of wires connecting multiple devices is termed a <em><strong>bus.</strong></em>
+    <ul>
+      <li>Buses include rigid protocols for the types of messages that can be sent across the bus and the procedures for resolving contention issues.</li>
+      <li>Figure 13.1 below illustrates three of the four bus types commonly found in a modern PC:
+        <ol>
+          <li>The <em><strong>PCI bus</strong></em> connects high-speed high-bandwidth devices to the memory subsystem (&nbsp;and the CPU.&nbsp;)</li>
+          <li>The <em><strong>expansion bus</strong></em> connects slower low-bandwidth devices, which typically deliver data one character at a time (&nbsp;with buffering.&nbsp;)</li>
+          <li>The <em><strong>SCSI bus</strong></em> connects a number of SCSI devices to a common SCSI controller.</li>
+          <li>A <em><strong>daisy-chain bus,</strong></em> (&nbsp;not shown) is when a string of devices is connected to each other like beads on a chain, and only one of the devices is directly connected to the host.        </li>
+        </ol>
+      </li>
+    </ul>
+  </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_01_TypicalBus.jpg" width="742" height="572"><br>
+  <strong>Figure 13.1 - A typical PC bus structure.</strong>
+</p>
+<ul>
+  <li>One way of communicating with devices is through <em><strong>registers</strong></em> associated with each port.
+  Registers may be one to four bytes in size, and may typically include (&nbsp;a subset of&nbsp;) the following four: 
+    <ol>
+      <li>The <em><strong>data-in register</strong></em> is read by the host to get input from the device.</li>
+      <li>The <em><strong>data-out register </strong></em>is written by the host to send output.</li>
+      <li>The <em><strong>status register</strong></em> has bits read by the host to ascertain the status of the device, such as idle, ready for input, busy, error, transaction complete, etc.</li>
+      <li>The <em><strong>control register</strong></em> has bits written by the host to issue commands or to change settings of the device such as parity checking, word length, or full- versus half-duplex operation.</li>
+    </ol>
+  </li>
+  <li>Figure 13.2 shows some of the most common I/O port address ranges. </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_02_IO_Ports.jpg" width="722" height="414"><br>
+  <strong>Figure 13.2 - Device I/O port locations on PCs ( partial ).</strong>
+</p>
+<ul>
+  <li>Another technique for communicating with devices is <em><strong>memory-mapped I/O.</strong></em>
+      <ul>
+        <li>In this case a certain portion of the processor's address space is mapped to the device, and communications occur by reading and writing directly to/from those memory areas.</li>
+        <li>Memory-mapped I/O is suitable for devices which must move large quantities of data quickly, such as graphics cards.</li>
+        <li>Memory-mapped I/O can be used either instead of or more often in combination with traditional registers. For example, graphics cards still use registers for control information such as setting the video mode.</li>
+        <li>A potential problem exists with memory-mapped I/O, if a process is allowed to write directly to the address space used by a memory-mapped I/O device.</li>
+        <li>(&nbsp;Note: Memory-mapped I/O is not the same thing as direct memory access, DMA. See section 13.2.3 below.&nbsp;) </li>
+      </ul>
+  </li>
+</ul>
+<blockquote>
+  <h4>13.2.1 Polling</h4>
+  <ul>
+    <li>One simple means of device <em><strong>handshaking</strong></em> involves polling:
+      <ol>
+        <li>The host repeatedly checks the <em><strong>busy bit</strong></em> on the device until it becomes clear.</li>
+        <li>The host writes a byte of data into the data-out register, and sets the <em><strong>write bit</strong></em> in the command register (&nbsp;in either order.&nbsp;)</li>
+        <li>The host sets the <em><strong>command ready bit</strong></em> in the command register to notify the device of the pending command.</li>
+        <li>When the device controller sees the command-ready bit set, it first sets the busy bit. </li>
+        <li>Then the device controller reads the command register, sees the write bit set, reads the byte of data from the data-out register, and outputs the byte of data.        </li>
+        <li>The device controller then clears the <em><strong>error bit</strong></em> in the status register, the command-ready bit, and finally clears the busy bit, signaling the completion of the operation.</li>
+      </ol>
+    </li>
+    <li>Polling can be very fast and efficient, if both the device and the controller are fast and if there is significant data to transfer. It becomes inefficient, however, if the host must wait a long time in the busy loop waiting for the device, or if frequent checks need to be made for data that is infrequently there. </li>
+  </ul>
+  <h4>13.2.2 Interrupts</h4>
+  <ul>
+    <li>Interrupts allow devices to notify the CPU when they have data to transfer or when an operation is complete, allowing the CPU to perform other duties when no I/O transfers need its immediate attention.</li>
+    <li>The CPU has an <em><strong>interrupt-request line</strong></em> that is sensed after every instruction.
+      <ul>
+        <li>A device's controller <em><strong>raises</strong></em> an interrupt by asserting a signal on the interrupt request line.</li>
+        <li>The CPU then performs a state save, and transfers control to the <em><strong>interrupt handler</strong></em> routine at a fixed address in memory. (&nbsp;The CPU <em><strong>catches</strong></em> the interrupt and <em><strong>dispatches</strong></em> the interrupt handler.&nbsp;) </li>
+        <li>The interrupt handler determines the cause of the interrupt, performs the necessary processing, performs a state restore, and executes a <em><strong>return from interrupt</strong></em> instruction to return control to the CPU.     (&nbsp;The interrupt handler <em><strong>clears</strong></em> the interrupt by servicing the device.&nbsp;) 
+          <ul>
+            <li>(&nbsp;Note that the state restored does not need to be the same state as the one that was saved when the interrupt went off. See below for an example involving time-slicing.&nbsp;) </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>Figure 13.3 illustrates the interrupt-driven I/O procedure: </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_03_Interrupt_IO.jpg" width="735" height="727"><br>
+    <strong>Figure 13.3 - Interrupt-driven I/O cycle.</strong>
+  </p>
+  <ul>
+    <li>The above description is adequate for simple interrupt-driven I/O, but there are three needs in modern computing which complicate the picture:
+      <ol>
+        <li>The need to defer interrupt handling during critical processing,</li>
+        <li>The need to determine <em><strong>which</strong></em> interrupt handler to invoke, without having to poll all devices to see which one needs attention, and   </li>
+        <li>The need for multi-level interrupts, so the system can differentiate between high- and low-priority interrupts for proper response.        </li>
+      </ol>
+    </li>
+    <li>These issues are handled in modern computer architectures with <em><strong>interrupt-controller</strong></em> hardware.
+      <ul>
+        <li>Most CPUs now have two interrupt-request lines: One that is <em><strong>non-maskable</strong></em> for critical error conditions and one that is <em><strong>maskable,</strong></em> that the CPU can temporarily ignore during critical processing. </li>
+        <li>The interrupt mechanism accepts an <em><strong>address, </strong></em>which is usually one of a small set of numbers for an offset into a table called the <em><strong>interrupt vector.</strong></em> This table (&nbsp;usually located at physical address zero&nbsp;?&nbsp;) holds the addresses of routines prepared to process specific interrupts.</li>
+        <li>The number of possible interrupt handlers still exceeds the range of defined interrupt numbers, so multiple handlers can be <em><strong>interrupt chained</strong></em>. Effectively the addresses held in the interrupt vectors are the head pointers for linked-lists of interrupt handlers.   </li>
+        <li>Figure 13.4 shows the Intel Pentium interrupt vector. Interrupts 0 to 31 are non-maskable and reserved for serious hardware and other errors. Maskable interrupts, including normal device I/O interrupts begin at interrupt 32.</li>
+        <li>Modern interrupt hardware also supports <em><strong>interrupt priority levels</strong></em>, allowing systems to mask off only lower-priority interrupts while servicing a high-priority interrupt, or conversely to allow a high-priority signal to interrupt the processing of a low-priority one.  </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_04_PentiumEventVector.jpg" width="722" height="616"><br>
+    <strong>Figure 13.4 - Intel Pentium processor event-vector table.</strong>
+  </p>
+  <ul>
+    <li>At boot time the system determines which devices are present, and loads the appropriate handler addresses into the interrupt table.</li>
+    <li>During operation, devices signal errors or the completion of commands via interrupts.</li>
+    <li>Exceptions, such as dividing by zero, invalid memory accesses, or attempts to access kernel mode instructions can be signaled via interrupts.</li>
+    <li>Time slicing and context switches can also be implemented using the interrupt mechanism.
+      <ul>
+        <li>The scheduler sets a hardware timer before transferring control over to a user process.</li>
+        <li>When the timer raises the interrupt request line, the CPU performs a state-save, and transfers control over to the proper interrupt handler, which in turn runs the scheduler.</li>
+        <li>The scheduler does a state-restore of a <em><strong>different </strong></em>process before resetting the timer and issuing the return-from-interrupt instruction.</li>
+      </ul>
+    </li>
+    <li>A similar example involves the paging system for virtual memory - A page fault causes an interrupt, which in turn issues an I/O request and a context switch as described above, moving the interrupted process into the wait queue and selecting a different process to run. When the I/O request has completed (&nbsp;i.e. when the requested page has been loaded up into physical memory&nbsp;), then the device interrupts, and the interrupt handler moves the process from the wait queue into the ready queue, (&nbsp;or depending on scheduling algorithms and policies, may go ahead and context switch it back onto the CPU.&nbsp;)</li>
+    <li>System calls are implemented via <em><strong>software interrupts, </strong></em>a.k.a. <em><strong>traps.</strong></em> When a (&nbsp;library&nbsp;) program needs work performed in kernel mode, it sets command information and possibly data addresses in certain registers, and then raises a software interrupt. (&nbsp;E.g. 21 hex in DOS.&nbsp;) The system does a state save and then calls on the proper interrupt handler to process the request in kernel mode. Software interrupts generally have low priority, as they are not as urgent as devices with limited buffering space.</li>
+    <li>Interrupts are also used to control kernel operations, and to schedule activities for optimal performance. For example, the completion of a disk read operation involves <strong>two</strong> interrupts:
+      <ul>
+        <li>A high-priority interrupt acknowledges the device completion, and issues the next disk request so that the hardware does not sit idle.</li>
+        <li>A lower-priority interrupt transfers the data from the kernel memory space to the user space, and then transfers the process from the waiting queue to the ready queue.</li>
+      </ul>
+    </li>
+    <li>The Solaris OS uses a multi-threaded kernel and priority threads to assign different threads to different interrupt handlers. This allows for the &quot;simultaneous&quot; handling of multiple interrupts, and the assurance that high-priority interrupts will take precedence over low-priority ones and over user processes.  </li>
+  </ul>
+  <h4>13.2.3 Direct Memory Access</h4>
+  <ul>
+    <li>For devices that transfer large quantities of data ( such as disk controllers ), it is wasteful to tie up the CPU transferring data in and out of registers one byte at a time.</li>
+    <li>Instead this work can be off-loaded to a special processor, known as the <em><strong>Direct Memory Access, DMA, Controller.</strong></em></li>
+    <li>The host issues a command to the DMA controller, indicating the location where the data is located, the location where the data is to be transferred to, and the number of bytes of data to transfer. The DMA controller handles the data transfer, and then interrupts the CPU when the transfer is complete.</li>
+    <li>A simple DMA controller is a standard component in modern PCs, and many <em><strong>bus-mastering</strong></em> I/O cards contain their own DMA hardware.</li>
+    <li>Handshaking between DMA controllers and their devices is accomplished through two wires called the DMA-request and DMA-acknowledge wires.</li>
+    <li>While the DMA transfer is going on the CPU does not have access to the PCI bus ( including main memory ), but it does have access to its internal registers and primary and secondary caches.     </li>
+    <li>DMA can be done in terms of either physical addresses or virtual addresses that are mapped to physical addresses. The latter approach is known as <em><strong>Direct Virtual Memory Access, DVMA, </strong></em>and allows direct data transfer from one memory-mapped device to another without using the main memory chips.</li>
+    <li>Direct DMA access by user processes can speed up operations, but is generally forbidden by modern systems for security and protection reasons. ( I.e. DMA is a kernel-mode operation. )</li>
+    <li>Figure 13.5 below illustrates the DMA process.   </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_05_DMA_Transfer.jpg" width="772" height="525"><br>
+    <strong>Figure 13.5 - Steps in a DMA transfer.</strong>
+  </p>
+  <h4>13.2.4 I/O Hardware Summary</h4>
+</blockquote>
+<h3>13.3 Application I/O Interface</h3>
+<ul>
+  <li>User application access to a wide variety of different devices is accomplished through layering, and through encapsulating all of the device-specific code into <em><strong>device drivers</strong></em>, while application layers are presented with a common interface for all ( or at least large general categories of ) devices. </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_06_Kernel_IO_Structure.jpg" width="747" height="549"><br>
+  <strong>Figure 13.6 - A kernel I/O structure.</strong>
+</p>
+<ul>
+  <li>Devices differ on many different dimensions, as outlined in Figure 13.7: </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_07_DeviceCharacteristics.jpg" width="722" height="451"><br>
+  <strong>Figure 13.7 - Characteristics of I/O devices.</strong>
+</p>
+<ul>
+  <li>Most devices can be characterized as either block I/O, character I/O, memory mapped file access, or network sockets. A few devices are special, such as time-of-day clock and the system timer.</li>
+  <li>Most OSes also have an <em><strong>escape, </strong></em>or <em><strong>back door, </strong></em>which allows applications to send commands directly to device drivers if needed. In UNIX this is the <em><strong>ioctl( ) </strong></em> system call ( I/O Control ). Ioctl( ) takes three arguments - The file descriptor for the device driver being accessed, an integer indicating the desired function to be performed, and an address used for communicating or transferring additional information. </li>
+</ul>
+<blockquote>
+  <h4>13.3.1 Block and Character Devices</h4>
+  <ul>
+    <li><em><strong>Block devices</strong></em> are accessed a block at a time, and are indicated by a &quot;b&quot; as the first character in a long listing on UNIX systems. Operations supported include read( ), write( ), and seek( ).
+      <ul>
+        <li>Accessing blocks on a hard drive directly ( without going through the filesystem structure ) is called <em><strong>raw I/O</strong></em>, and can speed up certain operations by bypassing the buffering and locking normally conducted by the OS. (&nbsp;It then becomes the application's responsibility to manage those issues. )</li>
+        <li>A new alternative is <em><strong>direct I/O, </strong></em>which uses the normal filesystem access, but which disables buffering and locking operations.</li>
+      </ul>
+    </li>
+    <li>Memory-mapped file I/O can be layered on top of block-device drivers.
+      <ul>
+        <li>Rather than reading in the entire file, it is mapped to a range of memory addresses, and then paged into memory as needed using the virtual memory system.</li>
+        <li>Access to the file is then accomplished through normal memory accesses, rather than through read( ) and write( ) system calls.   This approach is commonly used for executable program code.</li>
+      </ul>
+    </li>
+    <li><strong><em>Character devices</em></strong> are accessed one byte at a time, and are indicated by a &quot;c&quot; in UNIX long listings. Supported operations include get( ) and put( ), with more advanced functionality such as reading an entire line supported by higher-level library routines.  </li>
+  </ul>
+  <h4>13.3.2 Network Devices</h4>
+  <ul>
+    <li>Because network access is inherently different from local disk access, most systems provide a separate interface for network devices.</li>
+    <li>One common and popular interface is the <em><strong>socket</strong></em> interface, which acts like a cable or pipeline connecting two networked entities. Data can be put into the socket at one end, and read out sequentially at the other end. Sockets are normally full-duplex, allowing for bi-directional data transfer.</li>
+    <li>The select( ) system call allows servers ( or other applications ) to identify sockets which have data waiting, without having to poll all available sockets.  </li>
+  </ul>
+  <h4>13.3.3 Clocks and Timers</h4>
+  <ul>
+    <li>Three types of time services are commonly needed in modern systems:
+      <ul>
+        <li>Get the current time of day.</li>
+        <li>Get the elapsed time ( system or wall clock ) since a previous event.</li>
+        <li>Set a timer to trigger event X at time T.</li>
+      </ul>
+    </li>
+    <li>Unfortunately time operations are not standard across all systems.</li>
+    <li>A <em><strong>programmable interrupt timer, PIT </strong></em> can be used to trigger operations and to measure elapsed time. It can be set to trigger an interrupt at a specific future time, or to trigger interrupts periodically on a regular basis.
+      <ul>
+        <li>The scheduler uses a PIT to trigger interrupts for ending time slices.</li>
+        <li>The disk system may use a PIT to schedule periodic maintenance cleanup, such as flushing buffers to disk.</li>
+        <li>Networks use PIT to abort or repeat operations that are taking too long to complete.       I.e. resending packets if an acknowledgement is not received before the timer goes off.</li>
+        <li>More timers than actually exist can be simulated by maintaining an ordered list of timer events, and setting the physical timer to go off when the next scheduled event should occur.</li>
+      </ul>
+    </li>
+    <li>On most systems the system clock is implemented by counting interrupts generated by the PIT. Unfortunately this is limited in its resolution to the interrupt frequency of the PIT, and may be subject to some drift over time. An alternate approach is to provide direct access to a high frequency hardware counter, which provides much higher resolution and accuracy, but which does not support interrupts.  </li>
+  </ul>
+  <h4>13.3.4 Blocking and Non-blocking I/O</h4>
+</blockquote>
+<ul>
+  <li>With <em><strong>blocking I/O</strong></em> a process is moved to the wait queue when an I/O request is made, and moved back to the ready queue when the request completes, allowing other processes to run in the meantime.</li>
+  <li>With <em><strong>non-blocking I/O</strong></em> the I/O request returns immediately, whether the requested I/O operation has ( completely ) occurred or not. This allows the process to check for available data without getting hung completely if it is not there. </li>
+  <li>One approach for programmers to implement non-blocking I/O is to have a multi-threaded application, in which one thread makes blocking I/O calls ( say to read a keyboard or mouse ), while other threads continue to update the screen or perform other tasks. </li>
+  <li>A subtle variation of the non-blocking I/O is the<em><strong> asynchronous I/O, </strong></em>in which the I/O request returns immediately allowing the process to continue on with other tasks, and then the process is notified ( via changing a process variable, or a software interrupt, or a callback function ) when the I/O operation has completed and the data is available for use. ( The regular non-blocking I/O returns immediately with whatever results are available, but does not complete the operation and notify the process later. ) </li>
+</ul>
+<blockquote>
+  <p align="center"><img src="images/Chapter13/13_08_Two_IO_Methods.jpg" width="759" height="334"><br>
+    <strong>Figure 13.8 - Two I/O methods: (a) synchronous and (b) asynchronous.</strong>
+  </p>
+<h4>13.3.5 Vectored I/O ( NEW )</h4>
+</blockquote>
+<h3>13.4 Kernel I/O Subsystem</h3>
+<blockquote>
+  <h4>13.4.1 I/O Scheduling</h4>
+  <ul>
+    <li>Scheduling I/O requests can greatly improve overall efficiency. Priorities can also play a part in request scheduling. </li>
+    <li>The classic example is the scheduling of disk accesses, as discussed in detail in chapter 12.</li>
+    <li>Buffering and caching can also help, and can allow for more flexible scheduling options.</li>
+    <li>On systems with many devices, separate request queues are often kept for each device:    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_09_DeviceStatusTable.jpg" width="730" height="412"><br>
+    <strong>Figure 13.9 - Device-status table.</strong>
+  </p>
+  <h4>13.4.2 Buffering</h4>
+  <ul>
+    <li>Buffering of I/O is performed for ( at least ) 3 major reasons:
+      <ol>
+        <li>Speed differences between two devices. ( See Figure 13.10 below. ) A slow device may write data into a buffer, and when the buffer is full, the entire buffer is sent to the fast device all at once. So that the slow device still has somewhere to write while this is going on, a second buffer is used, and the two buffers alternate as each becomes full. This is known as <em><strong>double buffering.</strong></em> ( Double buffering is often used in (&nbsp;animated ) graphics, so that one screen image can be generated in a buffer while the other ( completed ) buffer is displayed on the screen. This prevents the user from ever seeing any half-finished screen images. )</li>
+        <li>Data transfer size differences. Buffers are used in particular in networking systems to break messages up into smaller packets for transfer, and then for re-assembly at the receiving side.</li>
+        <li>To support <em><strong>copy semantics.</strong></em> For example, when an application makes a request for a disk write, the data is copied from the user's memory area into a kernel buffer. Now the application can change their copy of the data, but the data which eventually gets written out to disk is the version of the data at the time the write request was made. </li>
+      </ol>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_10_SunTransferRates.jpg" width="695" height="573"><br>
+    <strong>Figure 13.10 - Sun Enterprise 6000 device-transfer rates ( logarithmic ).</strong>
+  </p>
+  <h4>13.4.3 Caching</h4>
+  <ul>
+    <li>Caching involves keeping a <em><strong>copy</strong></em> of data in a faster-access location than where the data is normally stored. </li>
+    <li>Buffering and caching are very similar, except that a buffer may hold the only copy of a given data item, whereas a cache is just a duplicate copy of some other data stored elsewhere.</li>
+    <li>Buffering and caching go hand-in-hand, and often the same storage space may be used for both purposes. For example, after a buffer is written to disk, then the copy in memory can be used as a cached copy, (until that buffer is needed for other purposes. ) </li>
+  </ul>
+  <h4>13.4.4 Spooling and Device Reservation</h4>
+  <ul>
+    <li>A <em><strong>spool ( Simultaneous Peripheral Operations On-Line )</strong></em> buffers data for ( peripheral ) devices such as printers that cannot support interleaved data streams.</li>
+    <li>If multiple processes want to print at the same time, they each send their print data to files stored in the spool directory. When each file is closed, then the application sees that print job as complete, and the print scheduler sends each file to the appropriate printer one at a time.</li>
+    <li>Support is provided for viewing the spool queues, removing jobs from the queues, moving jobs from one queue to another queue, and in some cases changing the priorities of jobs in the queues. </li>
+    <li>Spool queues can be general ( any laser printer ) or specific ( printer number 42. )</li>
+    <li>OSes can also provide support for processes to request / get exclusive access to a particular device, and/or to wait until a device becomes available.  </li>
+  </ul>
+  <h4>13.4.5 Error Handling</h4>
+  <ul>
+    <li>I/O requests can fail for many reasons, either transient (&nbsp;buffers overflow&nbsp;) or permanent (&nbsp;disk crash&nbsp;).</li>
+    <li>I/O requests usually return an error bit ( or more ) indicating the problem. UNIX systems also set the global variable <em><strong>errno</strong></em> to one of a hundred or so well-defined values to indicate the specific error that has occurred. ( See errno.h for a complete listing, or man errno. ) </li>
+    <li>Some devices, such as SCSI devices, are capable of providing much more detailed information about errors, and even keep an on-board error log that can be requested by the host. </li>
+  </ul>
+  <h4>13.4.6 I/O Protection</h4>
+  <ul>
+    <li>The I/O system must protect against either accidental or deliberate erroneous I/O.</li>
+    <li>User applications are not allowed to perform I/O in user mode - All I/O requests are handled through system calls that must be performed in kernel mode.</li>
+    <li>Memory mapped areas and I/O ports must be protected by the memory management system, <strong>but</strong> access to these areas cannot be totally denied to user programs. ( Video games and some other applications need to be able to write directly to video memory for optimal performance for example. ) Instead the memory protection system restricts access so that only one process at a time can access particular parts of memory, such as the portion of the screen memory corresponding to a particular window. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_11_SystemCall.jpg" width="476" height="549"><br>
+    <strong>Figure 13.11 - Use of a system call to perform I/O.</strong>
+  </p>
+  <h4>13.4.7 Kernel Data Structures</h4>
+  <ul>
+    <li>The kernel maintains a number of important data structures pertaining to the I/O system, such as the open file table.</li>
+    <li>These structures are object-oriented, and flexible to allow access to a wide variety of I/O devices through a common interface. ( See Figure 13.12 below. )</li>
+    <li>Windows NT carries the object-orientation one step further, implementing I/O as a message-passing system from the source through various intermediaries to the device.  </li>
+  </ul>
+  <p align="center"><img src="images/Chapter13/13_12_UNIX_IO.jpg" width="767" height="590"><br>
+    <strong>Figure 13.12 - UNIX I/O kernel structure.</strong>
+  </p>
+  <h4>13.4.6 Kernel I/O Subsystem Summary</h4>
+</blockquote>
+<h3>13.5 Transforming I/O Requests to Hardware Operations</h3>
+<ul>
+  <li>Users request data using file names, which must ultimately be mapped to specific blocks of data from a specific device managed by a specific device driver.</li>
+  <li>DOS uses the colon separator to specify a particular device ( e.g. C:, LPT:, etc. )</li>
+  <li>UNIX uses a <em><strong>mount table</strong></em> to map filename prefixes ( e.g. /usr ) to specific mounted devices. Where multiple entries in the mount table match different prefixes of the filename the one that matches the longest prefix  is chosen. ( e.g. /usr/home instead of /usr where both exist in the mount table and both match the desired file. )</li>
+  <li>UNIX uses special <em><strong>device files,</strong></em> usually located in /dev, to represent and access physical devices directly.
+    <ul>
+      <li>Each device file has a major and minor number associated with it, stored and displayed where the file size would normally go.</li>
+      <li>The major number is an index into a table of device drivers, and indicates which device driver handles this device. ( E.g. the disk drive handler. )</li>
+      <li>The minor number is a parameter passed to the device driver, and indicates which specific device is to be accessed, out of the many which may be handled by a particular device driver. ( e.g. a particular disk drive or partition. )</li>
+    </ul>
+  </li>
+  <li>A series of lookup tables and mappings makes the access of different devices flexible, and somewhat transparent to users.</li>
+  <li>Figure 13.13 illustrates the steps taken to process a ( blocking ) read request: </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_13_IO_LifeCycle.jpg" width="736" height="1056"><br>
+  <strong>Figure 13.13 - The life cycle of an I/O request.</strong>
+</p>
+<h3>13.6 STREAMS ( Optional )</h3>
+<ul>
+  <li>The <em><strong>streams</strong></em> mechanism in UNIX provides a bi-directional pipeline between a user process and a device driver, onto which additional modules can be added.</li>
+  <li>The user process interacts with the <em><strong>stream head.</strong></em></li>
+  <li>The device driver interacts with the <em><strong>device end.</strong></em></li>
+  <li>Zero or more <em><strong>stream modules</strong></em> can be pushed onto the stream, using ioctl( ). These modules may filter and/or modify the data as it passes through the stream.</li>
+  <li>Each module has a <em><strong>read queue</strong></em> and a <em><strong>write queue.</strong></em></li>
+  <li><strong><em>Flow control</em></strong> can be optionally supported, in which case each module will buffer data until the adjacent module is ready to receive it. Without flow control, data is passed along as soon as it is ready.</li>
+  <li>User processes communicate with the stream head using either read( ) and write( ) ( or putmsg( ) and getmsg( ) for message passing. )</li>
+  <li>Streams I/O is asynchronous ( non-blocking ), except for the interface between the user process and the stream head.</li>
+  <li>The device driver <strong>must</strong> respond to interrupts from its device - If the adjacent module is not prepared to accept data and the device driver's buffers are all full, then data is typically dropped. </li>
+  <li>Streams are widely used in UNIX, and are the preferred approach for device drivers. For example, UNIX implements sockets using streams. </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_14_STREAMS.jpg" width="549" height="572"><br>
+  <strong>Figure 13.14 - The SREAMS structure.</strong>
+</p>
+<h3>13.7 Performance ( Optional )</h3>
+<ul>
+  <li>The I/O system is a major factor in overall system performance, and can place heavy loads on other major components of the system ( interrupt handling, process switching, memory access, bus contention, and CPU load for device drivers just to name a few. )</li>
+  <li>Interrupt handling can be relatively expensive ( slow ), which causes programmed I/O to be faster than interrupt-driven I/O when the time spent busy waiting is not excessive.</li>
+  <li>Network traffic can also put a heavy load on the system. Consider for example the sequence of events that occur when a single character is typed in a telnet session, as shown in figure 13.15. ( And the fact that a similar set of events must happen in reverse to echo back the character that was typed. ) Sun uses in-kernel threads for the telnet daemon, increasing the supportable number of simultaneous telnet sessions from the hundreds to the thousands.</li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_15_IntercomputerComms.jpg" width="690" height="849"><br>
+  <strong>Figure 13.15 - Intercomputer communications.</strong>
+</p>
+<ul>
+  <li>Other systems use <em><strong>front-end processors</strong></em> to off-load some of the work of I/O processing from the CPU. For example a <em><strong>terminal concentrator</strong></em> can   multiplex with hundreds of terminals on a single port on a large computer.</li>
+  <li>Several principles can be employed to increase the overall efficiency of I/O processing:
+    <ol>
+      <li>Reduce the number of context switches.</li>
+      <li>Reduce the number of times data must be copied.</li>
+      <li>Reduce interrupt frequency, using large transfers, buffering, and polling where appropriate.</li>
+      <li>Increase concurrency using DMA.</li>
+      <li>Move processing primitives into hardware, allowing their operation to be concurrent with CPU and bus operations.</li>
+      <li>Balance CPU, memory, bus, and I/O operations, so a bottleneck in one does not idle all the others.</li>
+    </ol>
+  </li>
+  <li>The development of new I/O algorithms often follows a progression from application level code to on-board hardware implementation, as shown in Figure 13.16. Lower-level implementations are faster and more efficient, but higher-level ones are more flexible and easier to modify. Hardware-level functionality may also be harder for higher-level authorities ( e.g. the kernel ) to control.     </li>
+</ul>
+<p align="center"><img src="images/Chapter13/13_16_DeviceFunctionality.jpg" width="456" height="751"><br>
+  <strong>Figure 13.16 - Device functionality progression.</strong>
+</p>
+<h3>13.8 Summary</h3>
+<p>&nbsp;                         </p>
+</BODY>
+</HTML>

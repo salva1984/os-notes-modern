@@ -1,0 +1,1137 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap");
+
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ * genre: editorial · macrostructure: Index-First + Long Document · theme: Almanac
+ * enrichment: none · nav: N3 side rail · footer: Ft4 dense colophon
+ */
+
+/* All visual decisions live in tokens so the light and night themes share
+   the same spacing, type roles, and interaction states. */
+:root {
+  --font-display: "Newsreader", ui-serif, Georgia, serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-paper: oklch(96.5% 0.012 88);
+  --color-paper-raised: oklch(98.2% 0.008 88);
+  --color-paper-muted: oklch(92.5% 0.014 88);
+  --color-rule: oklch(83% 0.014 88);
+  --color-rule-strong: oklch(68% 0.018 88);
+  --color-ink: oklch(22% 0.018 88);
+  --color-ink-soft: oklch(42% 0.018 88);
+  --color-ink-faint: oklch(56% 0.014 88);
+  --color-accent: oklch(48% 0.12 145);
+  --color-accent-soft: oklch(87% 0.045 145);
+  --color-focus: oklch(56% 0.15 145);
+  --color-code: oklch(28% 0.02 88);
+  --color-code-ink: oklch(93% 0.012 88);
+  --color-selection: oklch(82% 0.08 145);
+
+  --shadow-whisper: 0 1px 2px oklch(20% 0.01 88 / 0.08);
+  --rule-hair: 1px;
+  --radius-small: 0.25rem;
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 9rem;
+
+  --text-xs: 0.72rem;
+  --text-sm: 0.86rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.9531rem;
+  --text-2xl: 2.4414rem;
+  --text-display: clamp(2.9rem, 6vw + 1rem, 5.25rem);
+
+  --page-gutter: clamp(1rem, 4vw, 3.5rem);
+  --page-max: 90rem;
+  --read-measure: 70ch;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 400;
+}
+
+/* Night mode changes only the surface values. Layout and type stay identical
+   so switching modes never changes the reading position. */
+body[data-theme="night"] {
+  --color-paper: oklch(16% 0.012 88);
+  --color-paper-raised: oklch(20% 0.014 88);
+  --color-paper-muted: oklch(24% 0.014 88);
+  --color-rule: oklch(32% 0.016 88);
+  --color-rule-strong: oklch(48% 0.016 88);
+  --color-ink: oklch(93% 0.012 88);
+  --color-ink-soft: oklch(76% 0.014 88);
+  --color-ink-faint: oklch(62% 0.014 88);
+  --color-accent: oklch(70% 0.105 145);
+  --color-accent-soft: oklch(30% 0.045 145);
+  --color-focus: oklch(74% 0.13 145);
+  --color-code: oklch(11% 0.012 88);
+  --color-code-ink: oklch(91% 0.012 88);
+  --color-selection: oklch(42% 0.08 145);
+  --shadow-whisper: 0 1px 2px oklch(5% 0.01 88 / 0.2);
+}
+
+/* Base document rules keep long notes readable and prevent accidental page
+   width expansion on narrow screens. */
+html {
+  overflow-x: clip;
+  scroll-behavior: smooth;
+  background: var(--color-paper);
+}
+
+body {
+  min-width: 0;
+  min-height: 100svh;
+  margin: 0;
+  overflow-x: clip;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--color-selection);
+  color: var(--color-ink);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
+}
+
+a:hover {
+  color: var(--color-ink);
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* The original pages use presentational tags. These rules neutralize them
+   before the script places the old content inside the reading shell. */
+body > center,
+body center {
+  display: block;
+  text-align: inherit;
+}
+
+font {
+  color: inherit !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+}
+
+/* Keyboard and focus affordances are part of the reading shell, not an
+   optional enhancement. */
+.skip-link {
+  position: fixed;
+  z-index: var(--z-modal);
+  top: var(--space-sm);
+  left: var(--page-gutter);
+  padding: var(--space-xs) var(--space-sm);
+  transform: translateY(-180%);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.reading-progress {
+  position: fixed;
+  z-index: var(--z-sticky);
+  inset: 0 0 auto;
+  height: 3px;
+  pointer-events: none;
+}
+
+.reading-progress__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left center;
+}
+
+/* The header stays deliberately small. The notes themselves carry the visual
+   weight, while these controls provide orientation and utility. */
+.site-header {
+  position: sticky;
+  z-index: var(--z-sticky);
+  top: 0;
+  background: var(--color-paper);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  width: min(100%, var(--page-max));
+  min-height: 4.25rem;
+  margin-inline: auto;
+  padding: var(--space-sm) var(--page-gutter);
+}
+
+.site-brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-brand__mark {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.site-header__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.site-nav a,
+.header-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  white-space: nowrap;
+  color: var(--color-ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.site-nav a:hover,
+.header-button:hover {
+  color: var(--color-accent);
+}
+
+.header-button {
+  padding: 0 var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-small);
+  background: transparent;
+}
+
+.header-button:active {
+  transform: translateY(1px);
+}
+
+/* Desktop notes use three zones: a thin chapter rail, the reading measure,
+   and a sticky outline. The outline collapses below the layout breakpoint. */
+.site-main {
+  width: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding: var(--space-3xl) var(--page-gutter) var(--space-4xl);
+}
+
+.reading-layout {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) minmax(12rem, 15rem);
+  gap: clamp(var(--space-lg), 4vw, var(--space-3xl));
+  align-items: start;
+}
+
+.chapter-rail {
+  position: sticky;
+  top: 6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 20rem;
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chapter-rail__wordmark {
+  color: var(--color-ink);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.chapter-rail__rule {
+  width: 1px;
+  min-height: 3rem;
+  background: var(--color-rule-strong);
+}
+
+.chapter-rail__link {
+  color: var(--color-ink-soft);
+  text-decoration: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.chapter-rail__link:hover {
+  color: var(--color-accent);
+}
+
+.chapter-rail__current {
+  color: var(--color-accent);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.source-content {
+  min-width: 0;
+}
+
+/* Typography is applied to the original HTML after site.js moves it into the
+   shell. This lets the content remain source-compatible with the old pages. */
+.source-content h1,
+.source-content h2,
+.source-content h3,
+.source-content h4,
+.source-content h5,
+.source-content h6 {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.source-content h1 {
+  max-width: 12ch;
+  margin: 0 0 var(--space-lg);
+  font-size: var(--text-display);
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.source-content h1 center {
+  display: inline;
+}
+
+.source-content h1.legacy-alert {
+  max-width: 48ch;
+  margin-block: var(--space-xl) var(--space-md);
+  padding-block: var(--space-md);
+  border-block: var(--rule-hair) solid var(--color-rule);
+  color: var(--color-accent);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.source-content h3 {
+  max-width: var(--read-measure);
+  margin: var(--space-3xl) 0 var(--space-md);
+  padding-top: var(--space-md);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  font-size: clamp(1.55rem, 2.2vw, 2.15rem);
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+.source-content h3:first-of-type {
+  margin-top: var(--space-xl);
+}
+
+.source-content h4 {
+  max-width: var(--read-measure);
+  margin: var(--space-2xl) 0 var(--space-sm);
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.source-content h5,
+.source-content h6 {
+  margin: var(--space-xl) 0 var(--space-xs);
+  font-size: var(--text-md);
+}
+
+.source-content p,
+.source-content li,
+.source-content dd,
+.source-content dt,
+.source-content blockquote {
+  max-width: var(--read-measure);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1.68;
+  font-variant-numeric: oldstyle-nums;
+}
+
+.source-content p {
+  margin-block: var(--space-md);
+}
+
+.source-content > p:first-of-type {
+  max-width: 62ch;
+  font-size: 1.3rem;
+  line-height: 1.5;
+}
+
+.source-content li + li {
+  margin-top: var(--space-xs);
+}
+
+.source-content ul,
+.source-content ol {
+  max-width: var(--read-measure);
+  margin-block: var(--space-md);
+  padding-inline-start: 1.4em;
+}
+
+.source-content ul ul,
+.source-content ol ol,
+.source-content ul ol,
+.source-content ol ul {
+  margin-block: var(--space-xs);
+}
+
+.source-content li::marker {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+}
+
+.source-content strong,
+.source-content b {
+  font-weight: 700;
+}
+
+.source-content em {
+  font-style: italic;
+}
+
+.source-content blockquote {
+  margin: var(--space-xl) 0;
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-lg);
+  border-inline-start: 2px solid var(--color-accent);
+  color: var(--color-ink-soft);
+}
+
+.source-content blockquote blockquote {
+  margin-block: var(--space-md);
+  border-inline-start-color: var(--color-rule-strong);
+}
+
+.source-content hr {
+  margin-block: var(--space-3xl);
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.source-content a {
+  text-decoration-thickness: 0.06em;
+}
+
+.source-content pre,
+/* Figures, tables, and code get their own surface so dense technical material
+   can be scanned without turning every paragraph into a card. */
+.source-content code,
+.source-content tt,
+.source-content .style1,
+.source-content .codetext,
+.source-content .courier,
+.source-content .Courier {
+  font-family: var(--font-mono) !important;
+}
+
+.source-content code,
+.source-content tt {
+  padding: 0.08em 0.24em;
+  background: var(--color-paper-muted);
+  color: var(--color-ink);
+  font-size: 0.82em;
+}
+
+.source-content pre {
+  max-width: var(--read-measure);
+  overflow-x: auto;
+  margin-block: var(--space-lg);
+  padding: var(--space-lg);
+  border-inline-start: 2px solid var(--color-accent);
+  background: var(--color-code);
+  color: var(--color-code-ink);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  tab-size: 2;
+  white-space: pre-wrap;
+}
+
+.source-content table {
+  width: 100%;
+  max-width: var(--read-measure);
+  margin-block: var(--space-lg);
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: var(--space-lg);
+}
+
+.table-wrap table {
+  margin-block: 0;
+}
+
+.source-content th,
+.source-content td {
+  padding: var(--space-sm) var(--space-xs);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.source-content th {
+  color: var(--color-ink-soft);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.source-content img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.source-content p:has(> img),
+.source-content figure {
+  max-width: min(100%, 70rem);
+  margin: var(--space-2xl) 0;
+  padding: var(--space-md);
+  border: var(--rule-hair) solid var(--color-rule);
+  background: var(--color-paper-raised);
+}
+
+.source-content p:has(> img) {
+  text-align: center;
+}
+
+.source-content p:has(> img) strong,
+.source-content figcaption {
+  display: block;
+  margin-top: var(--space-sm);
+  color: var(--color-ink-soft);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.source-content p:has(> img) br {
+  display: none;
+}
+
+.source-content dl {
+  max-width: var(--read-measure);
+}
+
+.source-content dt {
+  margin-top: var(--space-md);
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.source-content dd {
+  margin-inline-start: var(--space-lg);
+}
+
+/* These labels are generated by the shell. The note text below them remains
+   the original course material. */
+.note-kicker,
+.index-kicker {
+  display: block;
+  margin-bottom: var(--space-md);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.note-intro,
+.index-intro {
+  max-width: 58ch;
+  margin: 0 0 var(--space-2xl);
+  color: var(--color-ink-soft);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 1.2vw + 0.8rem, 1.55rem);
+  line-height: 1.45;
+}
+
+.index-content {
+  max-width: 78rem;
+}
+
+.index-content h1 {
+  max-width: 18ch;
+  font-size: clamp(3.4rem, 5vw + 1rem, 5rem);
+}
+
+.index-content > ol,
+.index-content > ul {
+  max-width: none;
+}
+
+.index-content > ol:first-of-type,
+.index-content > ul:first-of-type {
+  padding: 0;
+  list-style: none;
+}
+
+.index-content > ul > li,
+.index-content > ol > li {
+  margin-block: var(--space-2xl);
+  padding-top: var(--space-md);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.index-content > ul > li > ul,
+.index-content > ol > li > ol,
+.index-content > ul > li > ol,
+.index-content > ol > li > ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0 var(--space-xl);
+  max-width: none;
+  margin-top: var(--space-md);
+  padding: 0;
+  list-style: none;
+}
+
+.index-content > ul > li > ul > li,
+.index-content > ol > li > ol > li,
+.index-content > ul > li > ol > li,
+.index-content > ol > li > ul > li {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-sm) 0;
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.index-content > ul > li > ul > li::before,
+.index-content > ol > li > ol > li::before,
+.index-content > ul > li > ol > li::before,
+.index-content > ol > li > ul > li::before {
+  display: inline-block;
+  width: 1.6em;
+  color: var(--color-accent);
+  content: "↳";
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  vertical-align: 0.12em;
+}
+
+.index-content > ul > li > ul > li > ul,
+.index-content > ol > li > ol > li > ul,
+.index-content > ul > li > ol > li > ul,
+.index-content > ol > li > ul > li > ul {
+  display: none;
+}
+
+.index-content h3 {
+  max-width: 18ch;
+  margin-top: var(--space-3xl);
+}
+
+.index-content h4 {
+  max-width: 70ch;
+  padding: var(--space-md) var(--space-lg);
+  border-inline-start: 2px solid var(--color-accent);
+  background: var(--color-paper-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.55;
+}
+
+/* The outline is a reading aid, not a second navigation system. It is built
+   from h3 headings and follows the reader on larger screens. */
+.notes-toc {
+  position: sticky;
+  top: 6rem;
+  min-width: 0;
+  max-height: calc(100svh - 7rem);
+  overflow: auto;
+  padding-inline-start: var(--space-lg);
+  border-inline-start: var(--rule-hair) solid var(--color-rule);
+}
+
+.notes-toc details {
+  min-width: 0;
+}
+
+.notes-toc summary {
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.notes-toc summary::-webkit-details-marker {
+  display: none;
+}
+
+.notes-toc summary::after {
+  float: right;
+  color: var(--color-accent);
+  content: "+";
+}
+
+.notes-toc details[open] summary::after {
+  content: "-";
+}
+
+.notes-toc nav {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.notes-toc a {
+  display: block;
+  color: var(--color-ink-soft);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.notes-toc a:hover,
+.notes-toc a.is-active {
+  color: var(--color-accent);
+}
+
+/* Previous and next links close each chapter without adding a large CTA. */
+.chapter-pagination {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+  max-width: 70ch;
+  margin-top: var(--space-4xl);
+  padding-top: var(--space-lg);
+  border-top: var(--rule-hair) solid var(--color-rule-strong);
+}
+
+.chapter-pagination a {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-sm) 0;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.chapter-pagination a:last-child {
+  text-align: right;
+}
+
+.chapter-pagination a:hover strong {
+  color: var(--color-accent);
+}
+
+.chapter-pagination span {
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chapter-pagination strong {
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+/* A compact colophon closes the page with source and deployment context. */
+.site-footer {
+  border-top: var(--rule-hair) solid var(--color-rule-strong);
+  background: var(--color-paper-muted);
+}
+
+.site-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 0.8fr);
+  gap: var(--space-2xl);
+  width: min(100%, var(--page-max));
+  margin-inline: auto;
+  padding: var(--space-2xl) var(--page-gutter);
+}
+
+.site-footer__title {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.site-footer p,
+.site-footer li,
+.site-footer a {
+  color: var(--color-ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}
+
+.site-footer p {
+  max-width: 66ch;
+  margin: 0;
+}
+
+.site-footer__links {
+  display: grid;
+  align-content: start;
+  gap: var(--space-xs);
+  justify-items: start;
+}
+
+.site-footer__links a {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.site-footer__links a:hover {
+  color: var(--color-accent);
+}
+
+/* Search stays in the browser. It filters the small chapter catalog rather
+   than loading an API or requiring a server. */
+.search-dialog {
+  width: min(34rem, calc(100% - 2rem));
+  padding: 0;
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-small);
+  background: var(--color-paper-raised);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-whisper);
+}
+
+.search-dialog::backdrop {
+  background: var(--color-ink);
+  opacity: 0.45;
+}
+
+.search-dialog__inner {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.search-dialog h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.search-dialog input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-sm);
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: var(--radius-small);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.search-results {
+  display: grid;
+  max-height: min(24rem, 55svh);
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-results li {
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.search-results a {
+  display: grid;
+  gap: var(--space-3xs);
+  padding: var(--space-sm) 0;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.search-results a:hover strong {
+  color: var(--color-accent);
+}
+
+.search-results span {
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.search-results strong {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.search-dialog__hint {
+  margin: 0;
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* Content-driven breakpoints keep the reading measure intact before the rail
+   and outline collapse. */
+@media (min-width: 60rem) {
+  .index-main {
+    padding-top: var(--space-4xl);
+  }
+
+  .index-content > h1 {
+    max-width: 18ch;
+  }
+}
+
+@media (max-width: 60rem) {
+  .reading-layout {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .notes-toc {
+    grid-column: 2;
+    position: static;
+    max-height: none;
+    margin-top: var(--space-xl);
+    padding: var(--space-md) 0 0;
+    border-top: var(--rule-hair) solid var(--color-rule);
+    border-inline-start: 0;
+  }
+
+  .source-content h1 {
+    max-width: 15ch;
+  }
+}
+
+@media (max-width: 40rem) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .site-header__inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding-block: var(--space-md);
+  }
+
+  .site-header__meta {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .site-nav {
+    gap: var(--space-sm);
+  }
+
+  .site-nav a,
+  .header-button {
+    min-height: 2.75rem;
+  }
+
+  .site-main {
+    padding-block: var(--space-2xl) var(--space-3xl);
+  }
+
+  .reading-layout {
+    display: block;
+  }
+
+  .chapter-rail {
+    position: static;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-height: 0;
+    margin-bottom: var(--space-2xl);
+  }
+
+  .chapter-rail__wordmark,
+  .chapter-rail__link,
+  .chapter-rail__current {
+    writing-mode: initial;
+    transform: none;
+  }
+
+  .chapter-rail__wordmark {
+    font-size: var(--text-xs);
+  }
+
+  .chapter-rail__rule {
+    width: 2rem;
+    min-height: 1px;
+  }
+
+  .source-content h1 {
+    max-width: 100%;
+    font-size: clamp(2.6rem, 13vw, 4.2rem);
+  }
+
+  .source-content h3 {
+    margin-top: var(--space-2xl);
+    font-size: 1.65rem;
+  }
+
+  .source-content p,
+  .source-content li,
+  .source-content dd,
+  .source-content dt,
+  .source-content blockquote {
+    font-size: 1.05rem;
+  }
+
+  .source-content p:has(> img),
+  .source-content figure {
+    margin-inline: calc(var(--page-gutter) * -0.35);
+    padding: var(--space-xs);
+  }
+
+  .index-content > ul > li > ul,
+  .index-content > ol > li > ol,
+  .index-content > ul > li > ol,
+  .index-content > ol > li > ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chapter-pagination {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chapter-pagination a:last-child {
+    text-align: left;
+  }
+
+  .site-footer__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/* A reading surface should not keep moving for users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

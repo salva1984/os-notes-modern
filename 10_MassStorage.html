@@ -1,0 +1,504 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="Mass-storage structure course notes.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: Mass-Storage Structure</TITLE></HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  Mass-Storage Structure 
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Ninth Edition &quot;, Chapter 10 ( Was chapter 12 )
+</OL>
+
+<h3>10.1 Overview of Mass-Storage Structure </h3>
+<blockquote>
+  <h4>10.1.1 Magnetic Disks</h4>
+  <ul>
+    <li>Traditional magnetic disks have the following basic structure:
+      <ul>
+        <li>One or more <em><strong>platters </strong></em>in the form of disks covered with magnetic media. <em><strong>Hard disk</strong></em> platters are made of rigid metal, while &quot;<em><strong>floppy</strong></em>&quot; disks are made of more flexible plastic. </li>
+        <li>Each platter has two working <em><strong>surfaces.  </strong></em>Older hard disk drives would sometimes not use the very top or bottom surface of a stack of platters, as these surfaces were more susceptible to potential damage.</li>
+        <li>Each working surface is divided into a number of concentric rings called <em><strong>tracks. </strong></em>The collection of all tracks that are the same distance from the edge of the platter, ( i.e. all tracks immediately above one another in the following diagram ) is called a <em><strong>cylinder</strong></em>.</li>
+        <li>Each track is further divided into <em><strong>sectors,</strong></em> traditionally containing 512 bytes of data each, although some modern disks occasionally use larger sector sizes. ( Sectors also include a header and a trailer, including checksum information among other things. Larger sector sizes reduce the fraction of the disk consumed by headers and trailers, but increase internal fragmentation and the amount of disk that must be marked bad in the case of errors. ) </li>
+        <li>The data on a hard drive is read by read-write <em><strong>heads. </strong></em>The standard configuration ( shown below ) uses one head per surface, each on a separate <em><strong>arm</strong></em>, and controlled by a common <em><strong>arm assembly</strong></em> which moves all heads simultaneously from one cylinder to another. ( Other configurations, including independent read-write heads, may speed up disk access, but involve serious technical difficulties. )</li>
+        <li>The storage capacity of a traditional disk drive is equal to the number of heads ( i.e. the number of working surfaces ), times the number of tracks per surface, times the number of sectors per track, times the number of bytes per sector. A particular physical block of data is specified by providing the head-sector-cylinder number at which it is located. </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_01_DiskMechanism.jpg" width="616" height="452"><br>
+  <strong>Figure 10.1 - Moving-head disk mechanism.</strong></p>
+  <ul>
+    <li>In operation the disk rotates at high speed, such as 7200 rpm ( 120 revolutions per second. ) The rate at which data can be transferred from the disk to the computer is composed of several steps:
+      <ul>
+        <li>The <em><strong>positioning time</strong></em>, a.k.a. the <em><strong>seek time </strong></em>or<em><strong> random access time</strong></em> is the time required to move the heads from one cylinder to another, and for the heads to settle down after the move. This is typically the slowest step in the process and the predominant bottleneck to overall transfer rates. </li>
+        <li>The <em><strong>rotational latency</strong></em> is the amount of time required for the desired sector to rotate around and come under the read-write head.This can range anywhere from zero to one full revolution, and on the average will equal one-half revolution.     This is another physical step and is usually the second slowest step behind seek time. ( For a disk rotating at 7200 rpm, the average rotational latency would be 1/2 revolution / 120 revolutions per second, or just over 4 milliseconds, a long time by computer standards. </li>
+        <li>The <em><strong>transfer rate</strong></em>, which is the time required to move the data electronically from the disk to the computer. (&nbsp;Some authors may also use the term transfer rate to refer to the overall transfer rate, including seek time and rotational latency as well as the electronic data transfer rate. )</li>
+      </ul>
+    </li>
+    <li>Disk heads &quot;fly&quot; over the surface on a very thin cushion of air. If they should accidentally contact the disk, then a <em><strong>head crash</strong></em> occurs, which may or may not permanently damage the disk or even destroy it completely. For this reason it is normal to <em><strong>park</strong></em> the disk heads when turning a computer off, which means to move the heads off the disk or to an area of the disk where there is no data stored.</li>
+    <li>Floppy disks are normally <em><strong>removable</strong></em>.  Hard drives can also be removable, and some are even  <em><strong>hot-swappable</strong></em>, meaning they can be removed while the computer is running, and a new hard drive inserted in their place. </li>
+    <li>Disk drives are connected to the computer via a cable known as the <em><strong>I/O Bus.</strong></em> Some of the common interface formats include Enhanced Integrated Drive Electronics, EIDE; Advanced Technology Attachment, ATA; Serial ATA, SATA, Universal Serial Bus, USB; Fiber Channel, FC, and Small Computer Systems Interface, SCSI.</li>
+    <li>The <em><strong>host controller</strong></em> is at the computer end of the I/O bus, and the <em><strong>disk controller</strong></em> is built into the disk itself. The CPU issues commands to the host controller via I/O ports. Data is transferred between the magnetic surface and onboard <em><strong>cache</strong></em> by the disk controller, and then the data is transferred from that cache to the host controller and the motherboard memory at electronic speeds.    </li>
+  </ul>
+  <h4>10.1.2 Solid-State Disks - New</h4>
+  <ul>
+    <li>As technologies improve and economics change, old technologies are often used in different ways. One example of this is the increasing used of <em><strong>solid state disks, or SSDs.</strong></em></li>
+    <li>SSDs use memory technology as a small fast hard disk. Specific implementations may use either flash memory or DRAM chips protected by a battery to sustain the information through power cycles.</li>
+    <li>Because SSDs have no moving parts they are much faster than traditional hard drives, and certain problems such as the scheduling of disk accesses simply do not apply.</li>
+    <li>However SSDs also have their weaknesses: They are more expensive than hard drives, generally not as large, and may have shorter life spans.</li>
+    <li>SSDs are especially useful as a high-speed cache of hard-disk information that must be accessed quickly. One example is to store filesystem meta-data, e.g. directory and inode information, that must be accessed quickly and often. Another variation is a boot disk containing the OS and some application executables, but no vital user data. SSDs are also used in laptops to make them smaller, faster, and lighter.</li>
+    <li>Because SSDs are so much faster than traditional hard disks, the throughput of the bus can become a limiting factor, causing some SSDs to be connected directly to the system PCI bus for example.</li>
+  </ul>
+  <h4>10.1.3 Magnetic Tapes - was 12.1.2</h4>
+  <ul>
+    <li>Magnetic tapes were once used for common secondary storage before the days of hard disk drives, but today are used primarily for backups.</li>
+    <li>Accessing a particular spot on a magnetic tape can be slow, but once reading or writing commences, access speeds are comparable to disk drives.</li>
+    <li>Capacities of tape drives can range from 20 to 200 GB, and compression can double that capacity.   </li>
+  </ul>
+</blockquote>
+<h3>10.2 Disk Structure</h3>
+<ul>
+  <li>The traditional head-sector-cylinder, HSC numbers are mapped to linear block addresses by numbering the first sector on the first head on the outermost track as sector 0. Numbering proceeds with the rest of the sectors on that same track, and then the rest of the tracks on the same cylinder before proceeding through the rest of the cylinders to the center of the disk. In modern practice these linear block addresses are used in place of the HSC numbers for a variety of reasons: </li>
+
+  <ol>
+    <li>The linear length of tracks near the outer edge of the disk is much longer than for those tracks located near the center, and therefore it is possible to squeeze many more sectors onto outer tracks than onto  inner ones. </li>
+    <li>All disks have some bad sectors, and therefore disks maintain a few spare sectors that can be used in place of the bad ones. The mapping of spare sectors to bad sectors in managed internally to the disk controller.</li>
+    <li>Modern hard drives can have thousands of cylinders, and hundreds of sectors per track on their outermost tracks. These numbers exceed the range of HSC numbers for many ( older ) operating systems, and therefore disks can be configured for any convenient combination of HSC values that falls within the total number of sectors physically on the drive.</li>
+  </ol>
+  <li>There is a limit to how closely packed individual bits can be placed on a physical media, but that limit is growing increasingly more packed as technological advances are made.</li>
+  <li>Modern disks pack many more sectors into outer cylinders than inner ones, using one of two approaches:
+    <ul>
+      <li>With <em><strong>Constant Linear Velocity, CLV, </strong></em>the density of bits is uniform from cylinder to cylinder. Because there are more sectors in outer cylinders, the disk spins slower when reading those cylinders, causing the rate of bits passing under the read-write head to remain constant.   This is the approach used by modern CDs and DVDs. </li>
+      <li>With <em><strong>Constant Angular Velocity, CAV, </strong></em>the disk rotates at a constant angular speed, with the bit density decreasing on outer cylinders. ( These disks would have a constant number of sectors per track on all cylinders. ) </li>
+    </ul>
+  </li>
+</ul>
+<h3>10.3 Disk Attachment</h3>
+<blockquote>
+  <p>Disk drives can be attached either directly to a particular host ( a local disk ) or to a network. 	</p>
+  <h4>10.3.1 Host-Attached Storage</h4>
+  <ul>
+    <li>Local disks are accessed through I/O Ports as described earlier.</li>
+    <li>The most common interfaces are IDE or ATA, each of which allow up to two drives per host controller.</li>
+    <li>SATA is similar with simpler cabling.</li>
+    <li>High end workstations or other systems in need of larger number of disks typically use SCSI disks:
+      <ul>
+        <li>The SCSI standard supports up to 16 <em><strong>targets</strong></em> on each SCSI bus, one of which is generally the host adapter and the other 15 of which can be disk or tape drives.</li>
+        <li>A SCSI target is usually a single drive, but the standard also supports up to 8 <em><strong>units</strong></em> within each target. These would generally be used for accessing individual disks within a RAID array. ( See below. )</li>
+        <li>The SCSI standard also supports multiple host adapters in a single computer, i.e. multiple SCSI busses.</li>
+        <li>Modern advancements in SCSI include &quot;fast&quot; and &quot;wide&quot; versions, as well as SCSI-2.</li>
+        <li>SCSI cables may be either 50 or 68 conductors. SCSI devices may be external as well as internal.</li>
+        <li>See <a href="http://en.wikipedia.org/wiki/SCSI">wikipedia</a> for more information on the SCSI interface. </li>
+      </ul>
+    </li>
+    <li>FC is a high-speed serial architecture that can operate over optical fiber or four-conductor copper wires, and has two variants:
+      <ul>
+        <li>A large switched fabric having a 24-bit address space. This variant allows for multiple devices and multiple hosts to interconnect, forming the basis for the <em><strong>storage-area networks, SANs, </strong></em>to be discussed in a future section.</li>
+        <li>The <em><strong>arbitrated loop, FC-AL, </strong></em>that can address up to 126 devices (&nbsp;drives and controllers.&nbsp;)     </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>10.3.2 Network-Attached Storage</h4>
+  <ul>
+    <li>Network attached storage connects storage devices to computers using a remote procedure call, RPC, interface, typically with something like NFS filesystem mounts. This is convenient for allowing several computers in a group common access and naming conventions for shared storage.</li>
+    <li>NAS can be implemented using SCSI cabling, or<em><strong> ISCSI </strong></em>uses Internet protocols and standard network connections, allowing long-distance remote access to shared files. </li>
+    <li>NAS allows computers to easily share data storage, but tends to be less efficient than standard host-attached storage.</li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_02_NetworkStorage.jpg" width="549" height="227"><br>
+    <strong>Figure 10.2 - Network-attached storage.</strong>
+  </p>
+  <h4>10.3.3 Storage-Area Network</h4>
+  <ul>
+    <li>A <em><strong>Storage-Area Network, SAN, </strong></em>connects computers and storage devices in a network, using storage protocols instead of network protocols.</li>
+    <li>One advantage of this is that storage access does not tie up regular networking bandwidth.</li>
+    <li>SAN is very flexible and dynamic, allowing hosts and devices to attach and detach on the fly.</li>
+    <li>SAN is also controllable, allowing restricted access to certain hosts and devices.     </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_03_StorageAreaNetwork.jpg" width="696" height="330"><br>
+    <strong>Figure 10.3 - Storage-area network.</strong>
+  </p>
+</blockquote>
+<h3>10.4 Disk Scheduling</h3>
+<ul>
+  <li>As mentioned earlier, disk transfer speeds are limited primarily by <em><strong>seek times</strong></em> and <em><strong>rotational latency.</strong></em> When multiple requests are to be processed there is also some inherent delay in waiting for other requests to be processed.</li>
+  <li><strong><em>Bandwidth</em></strong> is measured by the amount of data transferred divided by the total amount of time from the first request being made to the last transfer being completed, ( for a series of disk requests. )</li>
+  <li>Both bandwidth and access time can be improved by processing requests in a good order.</li>
+  <li>Disk requests include the disk address, memory address, number of sectors to transfer, and whether the request is for reading or writing.     </li>
+</ul>
+<blockquote>
+  <h4>10.4.1 FCFS Scheduling</h4>
+  <ul>
+    <li><em><strong>First-Come First-Serve</strong></em> is simple and intrinsically fair, but not very efficient. Consider in the following sequence the wild swing from cylinder 122 to 14 and then back to 124:</li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_04_FCFS.jpg" width="512" height="348"><br>
+    <strong>Figure 10.4 - FCFS disk scheduling.</strong>
+  </p>
+  <h4>10.4.2 SSTF Scheduling </h4>
+  <ul>
+    <li><em><strong>Shortest Seek Time First</strong></em> scheduling is more efficient, but may lead to starvation if a constant stream of requests arrives for the same general area of the disk. </li>
+    <li>SSTF reduces the total head movement to 236 cylinders, down from 640 required for the same set of requests under FCFS. Note, however that the distance could be reduced still further to 208 by starting with 37 and then 14 first before processing the rest of the requests. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_05_SSTF.jpg" width="510" height="350"><br>
+    <strong>Figure 10.5 - SSTF disk scheduling.</strong>
+  </p>
+  <h4>10.4.3 SCAN Scheduling</h4>
+  <ul>
+    <li>The <em><strong>SCAN</strong></em> algorithm, a.k.a. the <em><strong> elevator </strong></em>algorithm moves back and forth from one end of the disk to the other, similarly to an elevator processing requests in a tall building.</li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_06_SCAN.jpg" width="511" height="365"><br>
+    <strong>Figure 10.6 - SCAN disk scheduling.</strong>
+  </p>
+  <ul>
+    <li>Under the SCAN algorithm, If a request arrives just ahead of the moving head then it will be processed right away, but if it arrives just after the head has passed, then it will have to wait for the head to pass going the other way on the return trip. This leads to a fairly wide variation in access times which can be improved upon.</li>
+    <li>Consider, for example, when the head reaches the high end of the disk:  Requests with high cylinder numbers just missed the passing head, which means they are all fairly recent requests, whereas requests with low numbers may have been waiting for a much longer time. Making the return scan from high to low then ends up accessing recent requests first and making older requests wait that much longer. </li>
+  </ul>
+  <h4>10.4.4 C-SCAN Scheduling</h4>
+  <ul>
+    <li>The <em><strong>Circular-SCAN</strong></em> algorithm improves upon SCAN by treating all requests in a circular queue fashion - Once the head reaches the end of the disk, it returns to the other end without processing any requests, and then starts again from the beginning of the disk: </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_07_C_SCAN.jpg" width="511" height="365"><br>
+    <strong>Figure 10.7 - C-SCAN disk scheduling.</strong>
+  </p>
+  <h4>12.4.5 LOOK Scheduling</h4>
+  <ul>
+    <li><em><strong>LOOK</strong></em> scheduling improves upon SCAN by looking ahead at the queue of pending requests, and not moving the heads any farther towards the end of the disk than is necessary. The following diagram illustrates the circular form of LOOK: </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_08_C_LOOK.jpg" width="512" height="365"><br>
+    <strong>Figure 10.8 - C-LOOK disk scheduling.</strong>
+  </p>
+  <h4>10.4.6 Selection of a Disk-Scheduling Algorithm</h4>
+  <ul>
+    <li>With very low loads all algorithms are equal, since there will normally only be one request to process at a time.</li>
+    <li>For slightly larger loads, SSTF offers better performance than FCFS, but may lead to starvation when loads become heavy enough.</li>
+    <li>For busier systems, SCAN and LOOK algorithms eliminate starvation problems.</li>
+    <li>The actual optimal algorithm may be something even more complex than those discussed here, but the incremental improvements are generally not worth the additional overhead.</li>
+    <li>Some improvement to overall filesystem access times can be made by intelligent placement of directory and/or inode information. If those structures are placed in the middle of the disk instead of at the beginning of the disk, then the maximum distance from those structures to data blocks is reduced to only one-half of the disk size. If those structures can be further distributed and furthermore have their data blocks stored as close as possible to the corresponding directory structures, then that reduces still further the overall time to find the disk block numbers and then access the corresponding data blocks.</li>
+    <li>On modern disks the rotational latency can be almost as significant as the seek time, however it is not within the OSes control to account for that, because modern disks do not reveal their internal sector mapping schemes, (&nbsp;particularly when bad blocks have been remapped to spare sectors. )
+<ul>
+        <li>Some disk manufacturers provide for disk scheduling algorithms directly on their disk controllers, ( which do know the actual geometry of the disk as well as any remapping ), so that if a series of requests are sent from the computer to the controller then those requests can be processed in an optimal order. </li>
+        <li>Unfortunately there are some considerations that the OS must take into account that are beyond the abilities of the on-board disk-scheduling algorithms, such as priorities of some requests over others, or the need to process certain requests in a particular order. For this reason OSes may elect to spoon-feed requests to the disk controller one at a time in certain situations. </li>
+      </ul>
+    </li>
+  </ul>
+</blockquote>
+<h3>10.5 Disk Management</h3>
+<blockquote>
+  <h4>105.1 Disk Formatting</h4>
+  <ul>
+    <li>Before a disk can be used, it has to be <em><strong>low-level formatted</strong></em>, which means laying down all of the headers and trailers marking the beginning and ends of each sector. Included in the header and trailer are the linear sector numbers, and <em><strong>error-correcting codes, ECC, </strong></em>which allow damaged sectors to not only be detected, but in many cases for the damaged data to be recovered ( depending on the extent of the damage. ) Sector sizes are traditionally 512 bytes, but may be larger, particularly in larger drives. </li>
+    <li>ECC calculation is performed with every disk read or write, and if damage is detected but the data is recoverable, then a <em><strong>soft error</strong></em> has occurred. Soft errors are generally handled by the on-board disk controller, and never seen by the OS.    ( See below. )</li>
+    <li>Once the disk is low-level formatted, the next step is to partition the drive into one or more separate partitions. This step must be completed even if the disk is to be used as a single large partition, so that the partition table can be written to the beginning of the disk.</li>
+    <li>After partitioning, then the filesystems must be <em><strong>logically formatted, </strong></em>which involves laying down the master directory information ( FAT table or inode structure ), initializing free lists, and creating at least the root directory of the filesystem. ( Disk partitions which are to be used as raw devices are not logically formatted. This saves the overhead and disk space of the filesystem structure, but requires that the application program manage its own disk storage requirements. ) </li>
+  </ul>
+  <h4>10.5.2 Boot Block</h4>
+  <ul>
+    <li>Computer ROM contains a <em><strong>bootstrap</strong></em> program ( OS independent ) with just enough code to find the first sector on the first hard drive on the first controller, load that sector into memory, and transfer control over to it. ( The ROM bootstrap program may look in floppy and/or CD drives before accessing the hard drive, and is smart enough to recognize whether it has found valid boot code or not. )</li>
+    <li>The first sector on the hard drive is known as the <em><strong>Master Boot Record, MBR, </strong></em>and contains a very small amount of code in addition to the <em><strong>partition table.</strong></em> The partition table documents how the disk is partitioned into logical disks, and indicates specifically which partition is the <em><strong>active</strong></em> or <em><strong>boot </strong></em>partition.</li>
+    <li>The boot program then looks to the active partition to find an operating system, possibly loading up a slightly larger / more advanced boot program along the way.</li>
+    <li>In a <em><strong>dual-boot</strong></em> ( or larger multi-boot ) system, the user may be given a choice of which operating system to boot, with a default action to be taken in the event of no response within some time frame.</li>
+    <li>Once the kernel is found by the boot program, it is loaded into memory and then control is transferred over to the OS. The kernel will normally continue the boot process by initializing all important kernel data structures, launching important system services ( e.g. network daemons, sched, init, etc. ), and finally providing one or more login prompts. Boot options at this stage may include <em><strong>single-user</strong></em> a.k.a. <em><strong>maintenance</strong></em> or <em><strong>safe</strong></em> modes, in which very few system services are started      - These modes are designed for system administrators to repair problems or otherwise maintain the system. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_09_WindowsBooting.jpg" width="405" height="279"><br>
+    <strong>Figure 10.9 - Booting from disk in Windows 2000.</strong>
+  </p>
+  <h4>10.5.3 Bad Blocks</h4>
+  <ul>
+    <li>No disk can be manufactured to 100% perfection, and all physical objects wear out over time. For these reasons all disks are shipped with a few bad blocks, and additional blocks can be expected to go bad slowly over time. If a large number of blocks go bad then the entire disk will need to be replaced, but a few here and there can be handled through other means.</li>
+    <li>In the old days, bad blocks had to be checked for manually. Formatting of the disk or running certain disk-analysis tools would identify bad blocks, and attempt to read the data off of them one last time through repeated tries. Then the bad blocks would be mapped out and taken out of future service. Sometimes the data could be recovered, and sometimes it was lost forever. ( Disk analysis tools could be either destructive or non-destructive. )</li>
+    <li>Modern disk controllers make much better use of the error-correcting codes, so that bad blocks can be detected earlier and the data usually recovered. ( Recall that blocks are tested with every write as well as with every read, so often errors can be detected before the write operation is complete, and the data simply written to a different sector instead. )</li>
+    <li>Note that re-mapping of sectors from their normal linear progression can throw off the disk scheduling optimization of the OS, especially if the replacement sector is physically far away from the sector it is replacing. For this reason most disks normally keep a few spare sectors on each cylinder, as well as at least one spare cylinder. Whenever possible a bad sector will be mapped to another sector on the same cylinder, or at least a cylinder as close as possible.<em><strong> Sector slipping</strong></em> may also be performed, in which all sectors between the bad sector and the replacement sector are moved down by one, so that the linear progression of sector numbers can be maintained.</li>
+    <li>If the data on a bad block cannot be recovered, then a <em><strong>hard error</strong></em> has occurred., which requires replacing the file(s) from backups, or rebuilding them from scratch. </li>
+  </ul>
+</blockquote>
+<h3>10.6 Swap-Space Management</h3>
+<ul>
+  <li>Modern systems typically swap out pages as needed, rather than swapping out entire processes. Hence the swapping system is part of the virtual memory management system.</li>
+  <li>Managing swap space is obviously an important task for modern OSes.  </li>
+</ul>
+<blockquote>
+  <h4>10.6.1 Swap-Space Use</h4>
+  <ul>
+    <li>The amount of swap space needed by an OS varies greatly according to how it is used. Some systems require an amount equal to physical RAM; some want a multiple of that; some want an amount equal to the amount by which virtual memory exceeds physical RAM, and some systems use little or none at all!</li>
+    <li>Some systems support multiple swap spaces on separate disks in order to speed up the virtual memory system. </li>
+  </ul>
+  <h4>10.6.2 Swap-Space Location</h4>
+  <blockquote>
+    <p>Swap space can be physically located in one of two locations:</p>
+    <ul>
+      <li>As a large file which is part of the regular filesystem. This is easy to implement, but inefficient. Not only must the swap space be accessed through the directory system, the file is also subject to fragmentation issues. Caching the block location helps in finding the physical blocks, but that is not a complete fix.</li>
+      <li>As a raw partition, possibly on a separate or little-used disk. This allows the OS more control over swap space management, which is usually faster and more efficient. Fragmentation of swap space is generally not a big issue, as the space is re-initialized every time the system is rebooted. The downside of keeping swap space on a raw partition is that it can only be grown by repartitioning the hard drive. </li>
+    </ul>
+  </blockquote>
+  <h4>12.6.3 Swap-Space Management: An Example</h4>
+  <ul>
+    <li>Historically OSes swapped out entire processes as needed. Modern systems swap out only individual pages, and only as needed. ( For example process code blocks and other blocks that have not been changed since they were originally loaded are normally just freed from the virtual memory system rather than copying them to swap space, because it is faster to go find them again in the filesystem and read them back in from there than to write them out to swap space and then read them back. )</li>
+    <li>In the mapping system shown below for Linux systems, a map of swap space is kept in memory, where each entry corresponds to a 4K block in the swap space. Zeros indicate free slots and non-zeros refer to how many processes have a mapping to that particular block ( &gt;1 for shared pages only. ) </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_10_LinuxSwapping.jpg" width="593" height="231"><br>
+    <strong>Figure 10.10 - The data structures for swapping on Linux systems.</strong>
+  </p>
+</blockquote>
+<h3>10.7 RAID Structure</h3>
+<ul>
+  <li>The general idea behind RAID is to employ a group of hard drives together with some form of duplication, either to increase reliability or to speed up operations, (&nbsp;or sometimes both.&nbsp;) </li>
+  <li><em><strong>RAID</strong></em> originally stood for <em><strong>Redundant Array of Inexpensive Disks,</strong></em> and was designed to use a bunch of cheap small disks in place of one or two larger more expensive ones. Today RAID systems employ large possibly expensive disks as their components, switching the definition to <em><strong>Independent</strong></em> disks. </li>
+</ul>
+<blockquote>
+  <h4>10.7.1 Improvement of Reliability via Redundancy</h4>
+  <ul>
+    <li>The more disks a system has, the greater the likelihood that one of them will go bad at any given time. Hence increasing disks on a system actually <em><strong>decreases</strong></em> the <strong>Mean Time To Failure, MTTF</strong> of the system. </li>
+    <li>If, however, the same data was copied onto multiple disks, then the data would not be lost unless <strong>both </strong>( or all ) copies of the data were damaged simultaneously, which is a <strong>MUCH</strong> lower probability than for a single disk going bad.  More specifically, the second disk would have to go bad before the first disk was repaired, which brings the <strong>Mean Time To Repair</strong> into play. For example if two disks were involved, each with a MTTF of 100,000 hours and a MTTR of 10 hours, then the <strong>Mean Time to Data Loss</strong> would be 500 * 10^6 hours, or 57,000 years!</li>
+    <li>This is the basic idea behind disk <em><strong>mirroring</strong></em>, in which a system contains identical data on two or more disks.  
+      <ul>
+        <li>Note that a power failure during a write operation could cause both disks to contain corrupt data, if both disks were writing simultaneously at the time of the power failure. One solution is to write to the two disks in series, so that they will not both become corrupted ( at least not in the same way ) by a power failure. And alternate solution involves non-volatile RAM as a write cache, which is not lost in the event of a power failure and which is protected by error-correcting codes. </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>10.7.2 Improvement in Performance via Parallelism</h4>
+  <ul>
+    <li>There is also a performance benefit to mirroring, particularly with respect to reads. Since every block of data is duplicated on multiple disks, read operations can be satisfied from any available copy, and multiple disks can be reading different data blocks simultaneously in parallel. ( Writes could possibly be sped up as well through careful scheduling algorithms, but it would be complicated in practice. )</li>
+    <li>Another way of improving disk access time is with <em><strong>striping</strong></em>, which basically means spreading data out across multiple disks that can be accessed simultaneously.
+      <ul>
+        <li>With <em><strong>bit-level striping </strong></em>the bits of each byte are striped across multiple disks. For example if 8 disks were involved, then each 8-bit byte would be read in parallel by 8 heads on separate disks. A single disk read would access 8 * 512 bytes = 4K worth of data in the time normally required to read 512 bytes. Similarly if 4 disks were involved, then two bits of each byte could be stored on each disk, for 2K worth of disk access per read or write operation.</li>
+        <li><strong><em>Block-level striping</em></strong> spreads a filesystem across multiple disks on a block-by-block basis, so if block N were located on disk 0, then block N + 1 would be on disk 1, and so on. This is particularly useful when filesystems are accessed in <em><strong>clusters</strong></em> of physical blocks.     Other striping possibilities exist, with block-level striping being the most common. </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>10.7.3 RAID Levels</h4>
+  <ul>
+    <li>Mirroring provides reliability but is expensive; Striping improves performance, but does not improve reliability. Accordingly there are a number of different schemes that combine the principals of mirroring and striping in different ways, in order to balance reliability versus performance versus cost. These are described by different <em><strong>RAID levels</strong></em>, as follows:  ( In the diagram that follows, &quot;C&quot; indicates a copy, and &quot;P&quot; indicates parity, i.e. checksum bits. )
+      <ol>
+<li value=0><strong><em>Raid Level 0 - </em></strong>This level includes striping only, with no mirroring. </li>
+<li ><strong><em>Raid Level 1 - </em></strong>This level includes mirroring only, no striping. </li>
+<li ><strong><em>Raid Level 2 - </em></strong>This level stores error-correcting codes on additional disks, allowing for any damaged data to be reconstructed by subtraction from the remaining undamaged data. Note that this scheme requires only three extra disks to protect 4 disks worth of data, as opposed to full mirroring. ( The number of disks required is a function of the error-correcting algorithms, and the means by which the particular bad bit(s) is(are) identified. ) </li>
+<li ><strong><em>Raid Level 3 - </em></strong>This level is similar to level 2, except that it takes advantage of the fact that each disk is still doing its own error-detection, so that when an error occurs, there is no question about which disk in the array has the bad data. As a result a single parity bit is all that is needed to recover the lost data from an array of disks. Level 3 also includes striping, which improves performance. The downside with the parity approach is that every disk must take part in every disk access, and the parity bits must be constantly calculated and checked, reducing performance. Hardware-level parity calculations and NVRAM cache can help with both of those issues. In practice level 3 is greatly preferred over level 2.</li>
+<li ><strong><em>Raid Level 4 - </em></strong>This level is similar to level 3, employing block-level striping instead of bit-level striping. The benefits are that multiple blocks can be read independently, and changes to a block only require writing two blocks ( data and parity ) rather than involving all disks. Note that new disks can be added seamlessly to the system provided they are initialized to all zeros, as this does not affect the parity results. </li>
+<li ><strong><em>Raid Level 5 - </em></strong>This level is similar to level 4, except the parity blocks are distributed over all disks, thereby more evenly balancing the load on the system. For any given block on the disk(s), one of the disks will hold the parity information for that block and the other N-1 disks will hold the data. Note that the same disk cannot hold both data and parity for the same block, as both would be lost in the event of a disk crash. </li>
+<li ><strong><em>Raid Level 6 - </em></strong>This level extends raid level 5 by storing multiple bits of error-recovery codes, ( such as the <em><strong><a href="http://en.wikipedia.org/wiki/Reed-Solomon_coding">Reed-Solomon codes</a></strong></em> ),  for each bit position of data, rather than a single parity bit. In the example shown below 2 bits of ECC  are stored for every 4 bits of data, allowing data recovery in the face of up to two simultaneous disk failures. Note that this still involves only 50% increase in storage needs, as opposed to 100% for simple mirroring which could only tolerate a single disk failure. </li>
+</ol>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_11_RAID_Levels.jpg" width="485" height="799"><br>
+    <strong>Figure 10.11 - RAID levels.</strong>
+  </p>
+  <ul>
+    <li>There are also two RAID levels which combine RAID levels 0 and 1 (&nbsp;striping and mirroring ) in different combinations, designed to provide both performance and reliability at the expense of increased cost.
+      <ul>
+        <li><strong>RAID level 0 + 1</strong> disks are first striped, and then the striped disks mirrored to another set.  This level generally provides better performance than RAID level 5.</li>
+        <li><strong>RAID level 1 + 0</strong> mirrors disks in pairs, and then stripes the mirrored pairs. The storage capacity, performance, etc. are all the same, but there is an  advantage to this approach in the event of multiple disk failures, as illustrated below:.  
+          <ul>
+            <li>In  diagram (a) below, the 8 disks have been divided into two sets of four, each of which is striped, and then one stripe set is used to mirror the other set.
+              <ul>
+                <li>If a single disk fails, it wipes out the entire stripe set, but the system can keep on functioning using the remaining set.</li>
+                <li>However if a second disk from the other stripe set now fails, then the entire system is lost, as a result of two disk failures.</li>
+              </ul>
+            </li>
+            <li>In diagram (b), the same 8 disks are divided into four sets of two, each of which is mirrored, and then the file system is striped across the four sets of mirrored disks.
+              <ul>
+                <li>If a single disk fails, then that mirror set is reduced to a single disk, but the system rolls on, and the other three mirror sets continue mirroring.</li>
+                <li>Now if a second disk fails, ( that is not the mirror of the already failed disk ), then another one of the mirror sets is reduced to a single disk, but the system can continue without data loss.</li>
+                <li>In fact the second arrangement could handle as many as four simultaneously failed disks, as long as no two of them were from the same mirror pair.</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>See the wikipedia article on <a href="http://en.wikipedia.org/wiki/RAID_10">nested raid levels</a> for more information. </li>
+        
+        <li>Here's a better explanation: <a href="http://www.storagereview.com/guide2000/ref/hdd/perf/raid/levels/multXY.html">http://www.storagereview.com/guide2000/ref/hdd/perf/raid/levels/multXY.html</a> </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_12_RAID_01.jpg" width="551" height="625"><br>
+    <strong>Figure 10.12 - RAID 0 + 1 and 1 + 0</strong>
+  </p>
+  <h4>10.7.4 Selecting a RAID Level</h4>
+  <ul>
+    <li>Trade-offs in selecting the optimal RAID level for a particular application include cost, volume of data, need for reliability, need for performance, and rebuild time, the latter of which can affect the likelihood that a second disk will fail while the first failed disk is being rebuilt.</li>
+    <li>Other decisions include how many disks are involved in a RAID set and how many disks to protect with a single parity bit. More disks in the set increases performance but increases cost. Protecting more disks per parity bit saves cost, but increases the likelihood that a second disk will fail before the first bad disk is repaired. </li>
+  </ul>
+  <h4>10.7.5 Extensions</h4>
+  <ul>
+    <li>RAID concepts have been extended to tape drives ( e.g. striping tapes for faster backups or parity checking tapes for reliability ), and for broadcasting of data. </li>
+  </ul>
+  <h4>10.7.6 Problems with RAID </h4>
+  <ul>
+    <li>RAID protects against physical errors, but not against any number of bugs or other errors that could write erroneous data.</li>
+    <li>ZFS adds an extra level of protection by including data block checksums in all inodes along with the pointers to the data blocks. If data are mirrored and one copy has the correct checksum and the other does not, then the data with the bad checksum will be replaced with a copy of the data with the good checksum. This increases reliability greatly over RAID alone, at a cost of a performance hit that is acceptable because ZFS is so fast to begin with. </li>
+  </ul>
+    <p align="center"><img src="images/Chapter10/10_13_ZFS_Checksums.jpg" width="530" height="427"><br>
+      <strong>Figure 10.13 - ZFS checksums all metadata and data.</strong></p>
+  <ul>
+      <li>Another problem with traditional filesystems is that the sizes are fixed, and relatively difficult to change. Where RAID sets are involved it becomes even harder to adjust filesystem sizes, because a filesystem cannot span across multiple filesystems.</li>
+      <li>ZFS solves these problems by pooling RAID sets, and by dynamically allocating space to filesystems as needed. Filesystem sizes can be limited by quotas, and space can also be reserved to guarantee that a filesystem will be able to grow later, but these parameters can be changed at any time by the filesystem's owner. Otherwise filesystems grow and shrink dynamically as needed.</li>
+  </ul>
+  <p align="center"><img src="images/Chapter10/10_14_ZFS_Pools.jpg" width="356" height="485"><br>
+    <strong>Figure 10.14 - (a) Traditional volumes and file systems. (b) a ZFS pool and file systems.</strong></p>
+</blockquote>
+<h3>10.8 Stable-Storage Implementation ( Optional )</h3>
+<ul>
+  <li>The concept of stable storage ( first presented in chapter 6 ) involves a storage medium in which data is <em><strong>never</strong></em> lost, even in the face of equipment failure in the middle of a write operation.</li>
+  <li>To implement this requires two ( or more ) copies of the data, with separate failure modes.</li>
+  <li>An attempted disk write results in one of three possible outcomes:
+    <ol>
+      <li>The data is successfully and completely written.</li>
+      <li>The data is partially written, but not completely. The last block written may be garbled.</li>
+      <li>No writing takes place at all.</li>
+    </ol>
+  </li>
+  <li>Whenever an equipment failure occurs during a write, the system must detect it, and return the system back to a consistent state. To do this requires two physical blocks for every logical block, and the following procedure:
+    <ol>
+      <li>Write the data to the first physical block.</li>
+      <li>After step 1 had completed, then write the data to the second physical block.</li>
+      <li>Declare the operation complete only after both physical writes have completed successfully.</li>
+    </ol>
+  </li>
+  <li>During recovery the pair of blocks is examined.
+    <ul>
+      <li>If both blocks are identical and there is no sign of damage, then no further action is necessary.</li>
+      <li>If one block contains a detectable error but the other does not, then the damaged block is replaced with the good copy. ( This will either undo the operation or complete the operation, depending on which block is damaged and which is undamaged. )</li>
+      <li>If neither block shows damage but the data in the blocks differ, then replace the data in the first block with the data in the second block. ( Undo the operation. )</li>
+    </ul>
+  </li>
+  <li>Because the sequence of operations described above is slow, stable storage usually includes NVRAM as a cache, and declares a write operation complete once it has been written to the NVRAM.           </li>
+</ul>
+<h3>10.9 Summary </h3>
+<hr>
+<h3>Was 12.9 Tertiary-Storage Structure - Optional, Omitted from Ninth Edition</h3>
+<ul>
+  <li>Primary storage refers to computer memory chips; Secondary storage refers to fixed-disk storage systems ( hard drives ); And <em><strong>Tertiary Storage</strong></em> refers to <em><strong>removable media, </strong></em>such as tape drives, CDs, DVDs, and to a lesser extend floppies, thumb drives, and other detachable devices.</li>
+  <li>Tertiary storage is typically characterized by large capacity, low cost per MB, and slow access times, although there are exceptions in any of these categories.</li>
+  <li>Tertiary storage is typically used for backups and for long-term archival storage of completed work. Another common use for tertiary storage is to swap large little-used files ( or groups of files ) off of the hard drive, and then swap them back in as needed in a fashion similar to secondary storage providing swap space for primary storage. ( Review <a href="ThePagingGame.html">The Paging Game</a>, note 5 ). </li>
+</ul>
+<blockquote>
+  <h4>12.9.1 Tertiary-Storage Devices</h4>
+  <blockquote>
+    <h4>12.9.1.1 Removable Disks</h4>
+    <ul>
+      <li>Removable magnetic disks ( e.g. floppies ) can be nearly as fast as hard drives, but are at greater risk for damage due to scratches. Variations of removable magnetic disks up to a GB or more in capacity have been developed. ( Hot-swappable hard drives? )</li>
+      <li>A <em><strong>magneto-optical</strong></em> disk uses a magnetic disk covered in a clear plastic coating that protects the surface.
+        <ul>
+          <li>The heads sit a considerable distance away from the magnetic surface, and as a result do not have enough magnetic strength to switch bits <em><strong>at normal room temperature.</strong></em></li>
+          <li>For writing, a laser is used to heat up a specific spot on the disk, to a temperature at which the weak magnetic field of the write head is able to flip the bits.</li>
+          <li>For reading, a laser is shined at the disk, and the <em><strong>Kerr effect</strong></em> causes the polarization of the light to become rotated either clockwise or counter-clockwise depending on the orientation of the magnetic field.</li>
+        </ul>
+      </li>
+      <li><em><strong>Optical disks</strong></em> do not use magnetism at all, but instead use special materials that can be altered ( by lasers ) to have relatively light or dark spots.
+        <ul>
+          <li>For example the <em><strong>phase-change disk</strong></em> has a material that can be frozen into either a crystalline or an amorphous state, the latter of which is less transparent and reflects less light when a laser is bounced off a reflective surface under the material.
+            <ul>
+              <li>Three powers of lasers are used with phase-change disks: (1) a low power laser is used to read the disk, without effecting the materials. (2) A medium power erases the disk, by melting and re-freezing the medium into a crystalline state, and (3) a high power writes to the disk by melting the medium and re-freezing it into the amorphous state.</li>
+              <li>The most common examples of these disks are <em><strong>re-writable</strong></em> CD-RWs and DVD-RWs.</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li>An alternative to the disks described above are<em><strong> Write-Once Read-Many, WORM</strong></em> drives.
+        <ul>
+          <li>The original version of WORM drives involved a thin layer of aluminum sandwiched between two protective layers of glass or plastic.
+            <ul>
+              <li>Holes were burned in the aluminum to write bits.</li>
+              <li>Because the holes could not be filled back in, there was no way to re-write to the disk. ( Although data could be erased by burning more holes. )</li>
+            </ul>
+          </li>
+          <li>WORM drives have important legal ramifications for data that must be stored for a very long time and must be provable in court as unaltered since it was originally written. ( Such as long-term storage of medical records. )</li>
+          <li>Modern CD-R     and DVD-R disks are examples of WORM drives that use organic polymer inks instead of an aluminum layer.</li>
+        </ul>
+      </li>
+      <li>Read-only disks are similar to WORM disks, except the bits are pressed onto the disk at the factory, rather than being burned on one by one. ( See <a href="http://en.wikipedia.org/wiki/CD_manufacturing#Premastering">http://en.wikipedia.org/wiki/CD_manufacturing#Premastering</a> for more information on CD manufacturing techniques. ) </li>
+    </ul>
+    <h4>12.9.1.2 Tapes</h4>
+    <ul>
+      <li>Tape drives typically cost more than disk drives, but the cost per MB of the tapes themselves is lower.</li>
+      <li>Tapes are typically used today for backups, and for enormous volumes of data stored by certain scientific establishments. ( E.g. NASA's archive of space probe and satellite imagery, which is currently being downloaded from numerous sources faster than anyone can actually look at it.  )</li>
+      <li>Robotic tape changers move tapes from drives to archival tape libraries upon demand.</li>
+      <li>( Never underestimate the bandwidth of a station wagon full of tapes rolling down the highway! ) </li>
+    </ul>
+    <h4>12.9.1.3 Future Technology</h4>
+    <ul>
+      <li><em><strong>Solid State Disks, SSDs,</strong></em> are becoming more and more popular.</li>
+      <li><em><strong>Holographic storage</strong></em> uses laser light to store images in a 3-D structure, and the entire data structure can be transferred in a single flash of laser light. </li>
+      <li><em><strong>Micro-Electronic Mechanical Systems, MEMS, </strong></em>employs the technology used for computer chip fabrication to create VERY tiny little machines. One example packs 10,000 read-write heads within a square centimeter of space, and as media are passed over it, all 10,000 heads can read data in parallel. </li>
+    </ul>
+  </blockquote>
+  <h4>12.9.2 Operating-System Support</h4>
+  <ul>
+    <li>The OS must provide support for tertiary storage as removable media, including the support to transfer data between different systems. </li>
+  </ul>
+  <blockquote>
+    <h4>12.9.2.1 Application Interface</h4>
+    <ul>
+      <li>File systems are typically not stored on tapes. ( It might be technically possible, but it is impractical. )</li>
+      <li>Tapes are also not low-level formatted, and do not use fixed-length blocks. Rather data is written to tapes in variable length blocks as needed.</li>
+      <li>Tapes are normally accessed as raw devices, requiring each application to determine how the data is to be stored and read back. Issues such as header contents and ASCII versus binary encoding ( and byte-ordering ) are generally application specific.</li>
+      <li>Basic operations supported for tapes include locate( ), read( ), write( ), and read_position( ).</li>
+      <li>( Because of variable length writes ), writing to a tape erases all data that follows that point on the tape.
+        <ul>
+          <li>Writing to a tape places the End of Tape ( EOT ) marker at the end of the data written.</li>
+          <li>It is not possible to locate( ) to any spot past the EOT marker. </li>
+        </ul>
+      </li>
+    </ul>
+    <h4>12.9.2.2 File Naming</h4>
+    <ul>
+      <li>File naming conventions for removable media are not entirely uniquely specific, nor are they necessarily consistent between different systems. ( Two removable disks may contain files with the same name, and there is no clear way for the naming system to distinguish between them. )</li>
+      <li>Fortunately music CDs have a common format, readable by all systems. Data CDs and DVDs have only a few format choices, making it easy for a system to support all known formats.  </li>
+    </ul>
+    <h4>12.9.2.3 Hierarchical Storage Management</h4>
+    <ul>
+      <li>Hierarchical storage involves extending file systems out onto tertiary storage, swapping files from hard drives to tapes in much the same manner as data blocks are swapped from memory to hard drives.</li>
+      <li>A placeholder is generally left on the hard drive, storing information about the particular tape ( or other removable media ) on which the file has been swapped out to.</li>
+      <li>A robotic system transfers data to and from tertiary storage as needed, generally automatically upon demand of the file(s) involved.   </li>
+    </ul>
+  </blockquote>
+  <h4>12.9.3 Performance Issues</h4>
+  <blockquote>
+    <h4>12.9.3.1 Speed</h4>
+    <ul>
+      <li><em><strong>Sustained Bandwidth</strong></em> is the rate of data transfer during a large file transfer, once the proper tape is loaded and the file located.</li>
+      <li><strong><em>Effective Bandwidth</em></strong> is the effective overall rate of data transfer, including any overhead necessary to load the proper tape and find the file on the tape.</li>
+      <li><strong><em>Access Latency</em></strong> is all of the accumulated waiting time before a file can be actually read from tape. This includes the time it takes to find the file on the tape, the time to load the tape from the tape library, and the time spent waiting in the queue for the tape drive to become available.</li>
+      <li>Clearly tertiary storage access is much slower than secondary access, although removable disks ( e.g. a CD jukebox ) have somewhat faster access than a tape library.     </li>
+    </ul>
+    <h4>12.9.3.1 Reliability</h4>
+    <ul>
+      <li>Fixed hard drives are generally more reliable than removable drives, because they are less susceptible to the environment.</li>
+      <li>Optical disks are generally more reliable than magnetic media.</li>
+      <li>A fixed hard drive crash can destroy all data, whereas an optical drive or tape drive failure will often not harm the data media, ( and certainly can't damage any media not in the drive at the time of the failure. )</li>
+      <li>Tape drives are mechanical devices, and can wear out tapes over time, ( as the tape head is generally in much closer physical contact with the tape than disk heads are with platters. )
+        <ul>
+          <li>Some drives may only be able to read tapes a few times whereas other drives may be able to re-use the same tapes millions of times.   </li>
+          <li>Backup tapes should be read after writing, to verify that the backup tape is readable. ( Unfortunately that may have been the LAST time that particular tape was readable, and the only way to be sure is to read it again, . . . )</li>
+          <li>Long-term tape storage can cause degradation, as magnetic fields &quot;drift&quot; from one layer of tape to the adjacent layers. Periodic fast-forwarding and rewinding of tapes can help, by changing which section of tape lays against which other layers. </li>
+        </ul>
+      </li>
+    </ul>
+    <h4>12.9.3.3 Cost</h4>
+    <ul>
+      <li>The cost per megabyte for removable media is its strongest selling feature, particularly as the amount of storage involved ( i.e. the number of tapes, CDs, etc ) increases.</li>
+      <li>However the cost per megabyte for hard drives has dropped more rapidly over the years than the cost of removable media, such that the currently most cost-effective backup solution for many systems is simply an additional ( external ) hard drive.</li>
+      <li>( One good use for old unwanted PCs is to put them on a network as a backup server and/or print server.  The downside to this backup solution is that the backups are stored on-site with the original data, and a fire, flood, or burglary could wipe out both the original data and the backups. ) </li>
+    </ul>
+    <p align="center"><img src="images/Chapter10/12_15_RAM_Prices.jpg" width="812" height="469"><br>
+      <strong>Old Figure 12.15 - 
+    Price per megabyte of DRAM, from 1981 to 2008</strong></p>
+    <p align="center"><img src="images/Chapter10/12_16_DiskPrices.jpg" width="828" height="487"><br>
+      <strong>Old Figure 12.16 - Price per megabyte of magnetic hard disk, from 1981 to 2008.</strong>
+    </p>
+    <p align="center"><img src="images/Chapter10/12_17_TapePrices.jpg" width="842" height="454"><br>
+      <strong>Old Figure 12.17 - Price per megabyte of a tape drive, from 1984 to 2008.</strong>
+    </p>
+  </blockquote>
+</blockquote>
+<p>&nbsp;</p>
+<p>&nbsp;                          </p>
+</BODY>
+</HTML>

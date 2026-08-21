@@ -1,0 +1,102 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="C programming notes for operating systems students.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: C Programming for Java Programmers</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  C Programming for Java Programmers
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Mark Allen Weiss, &quot;C++ for Java Programmers&quot;  
+</OL>
+<p>These notes are prepared to quickly bring CS 385 Operating Systems students up to speed with the basics of C programming they will need for their programming assignments.  They are almost entirely restricted to pure C, with only a few of the C++ enhancements included, and no classes or other OO programming.</p>
+<p>See also <a href="http://www.cs.uic.edu/~jbell/CourseNotes/CPlus/index.html">C Plus Course Notes Pages</a></p>
+<h3>Some Simple Samples</h3>
+<ul>
+  <li>	<a href="argprinter.cpp">argprinter.cpp</a></li>
+  <li><a href="timeKiller.cpp">timekiller.cpp</a></li>
+</ul>
+<h3>0 Introduction</h3>
+<ul>
+  <li>C was developed when programs had to be space, time, and instruction efficient. The philosophy is to trust programmers and to give them all the power and flexibility possible. It is like a very powerful chainsaw with no safety guards to get in the way.
+    <ul>
+      <li>C does not check array indices or memory accesses ( pointers. )</li>
+      <li>C does little  if any type checking. Typecasts between incompatable types is allowed.</li>
+      <li>C does not initialize variables. Uninitialized variables may contain random values ( commonly ) or zeros ( only in certain implementations. )</li>
+      <li>C provides much more direct access to memory storage locations, with no checks or restrictions.</li>
+    </ul>
+  </li>
+  <li>C++ was written to be backwards compatible with C, so ( almost ) any program written in pure C can be compiled and run in C++ with no loss of speed or space efficiency.  </li>
+</ul>
+<h3>1 Basic Types and Control Structures</h3>
+<ul>
+  <li>Functions in C do not have to be inside of classes. ( Pure C doesn't even support classes. )</li>
+  <li>C provides a <em><strong>preprocessor</strong></em>, which processes user code before passing it to the compiler.
+    <ul>
+      <li>#include &lt;library.h&gt; - Reads the file &quot;library.h&quot; from standard directories and inserts the text into this position of the user's code.</li>
+      <li>#include &quot;mylibrary.h&quot; - Reads the file &quot;mylibrary.h&quot; from the current directory, as above.</li>
+      <li>#define MAXCOLS 1000 - Initializes a text substitution of every occurance of &quot;MAXCOLS&quot; to &quot;1000&quot;</li>
+      <li>#define DEBUG - Sets the preprocessor variable &quot;DEBUG' to 1</li>
+      <li>#ifdef, #ifndef, #else, #endif - Used to conditionally include or not include blocks of code passed to the compiler.</li>
+    </ul>
+  </li>
+  <li>using namespace std; - It's magic, just do it. :-)</li>
+  <li>Typecasts - Example: average = ( double ) totalScores / nStudents;</li>
+  <li>typedef - defines new types, typically structures
+    <ul>
+      <li>typedef myIntegerType int;</li>
+    </ul>
+  </li>
+  <li>Conditional tests work on numbers as well as booleans. Any non-zero number is considered true:  </li>
+  <ul>
+    <li>
+      <pre>while( number )
+      number--; </pre>
+    </li>
+  </ul>
+  <li></li>
+</ul>
+<h3>2 Functions, Arrrays, Strings, and Parameter Passing</h3>
+<ul>
+  <li>Function Prototypes</li>
+  <li>Parameter passing mechanisms
+    <ul>
+      <li>by value</li>
+      <li>by reference</li>
+      <li>by pointer / address</li>
+    </ul>
+  </li>
+  <li>const</li>
+  <li>Relationship between arrays,  pointers, and memory addresses.</li>
+  <li>Arrays of pointers - double indirection. ( or more. )</li>
+  <li>C-style character strings. ( See 11 below. )</li>
+</ul>
+<h3>3 Pointers and Reference Variables</h3>
+<ul>
+  <li>void * - A generic pointer that can be used to point to any memory location. In general void pointers must be typecast to specific pointer types before they can be used.</li>
+  <li>char * - The C language did not originally have a void * type, so programmers would use a char * as a generic pointer, to point to any memory location with a &quot;resolution&quot; of one byte. Many old system calls use char * for what we would today use void *.</li>
+</ul>
+<h3>4.9 The struct Type</h3>
+<ul>
+  <li>Pointers to structs.</li>
+  <li>structs containing pointers.</li>
+  <li>Arrays of structs.</li>
+  <li>Endless combinations of the above.</li>
+</ul>
+<h3>10 Collections: The Standard Template Library</h3>
+<h3>11 Primitive Arrays and Strings</h3>
+<h3>12 C-Style C++</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp; </h3>
+</BODY>
+</HTML>

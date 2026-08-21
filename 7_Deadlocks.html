@@ -1,0 +1,379 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="Deadlocks course notes for operating systems.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: Deadlocks</TITLE></HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  Deadlocks
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Ninth Edition &quot;, Chapter 7
+</OL>
+
+<h3>7.1 System Model</h3>
+<ul>
+  <li>For the purposes of deadlock discussion, a system can be modeled as a collection of limited resources, which can be partitioned into different categories, to be allocated to a number of processes, each having different needs.</li>
+  <li>Resource categories may include memory, printers, CPUs, open files, tape drives, CD-ROMS, etc. </li>
+  <li>By definition, all the resources within a category are equivalent, and a request of this category can be equally satisfied by any one of the resources in that category.  If this is not the case (&nbsp;i.e. if there is some difference between the resources within a category ), then that category needs to be further divided into separate categories. For example, &quot;printers&quot; may need to be separated into &quot;laser printers&quot; and &quot;color inkjet printers&quot;.</li>
+  <li>Some categories may have a single resource.</li>
+  <li>In normal operation a process must request a resource before using it, and release it when it is done, in the following sequence:
+    <ol>
+      <li>Request - If the request cannot be immediately granted, then the process must wait until the resource(s) it needs become available. For example the system calls open(&nbsp;), malloc(&nbsp;), new(&nbsp;), and request(&nbsp;). </li>
+      <li>Use - The process uses the resource, e.g. prints to the printer or reads from the file.</li>
+      <li>Release - The process relinquishes the resource. so that it becomes available for other processes. For example, close(&nbsp;), free(&nbsp;), delete(&nbsp;), and release(&nbsp;). </li>
+    </ol>
+  </li>
+  <li>For all kernel-managed resources, the kernel keeps track of what resources are free and which are allocated, to which process they are allocated, and a queue of processes waiting for this resource to become available. Application-managed resources can be controlled using mutexes or wait( ) and signal( ) calls, ( i.e. binary or counting semaphores. )</li>
+  <li>A set of processes is deadlocked when every process in the set is waiting for a resource that is currently allocated to another process in the set ( and which can only be released when that other waiting process makes progress. )    </li>
+</ul>
+<h3>7.2 Deadlock Characterization</h3>
+<p align="center"><img src="images/Chapter7/7_DeadlockWithMutexLocks.jpg" width="736" height="1565"><br>
+  <strong>New Sidebar in Ninth Edition</strong>
+</p>
+<blockquote>
+  <h4>7.2.1 Necessary Conditions</h4>
+  <ul>
+    <li>There are four conditions that are necessary to achieve deadlock:
+      <ol>
+        <li><strong>Mutual Exclusion</strong> - At least one resource must be held in a non-sharable mode; If any other process requests this resource, then that process must wait for the resource to be released.</li>
+        <li><strong>Hold and Wait</strong> - A process must be simultaneously holding at least one resource and waiting for at least one resource that is currently being held by some other process.</li>
+        <li><strong>No preemption</strong> - Once a process is holding a resource ( i.e. once its request has been granted ), then that resource cannot be taken away from that process until the process voluntarily releases it.</li>
+        <li><strong>Circular Wait</strong> - A set of processes { P0, P1, P2, . . ., PN } must exist such that every P[ i ] is waiting for P[ ( i + 1 ) % ( N + 1 ) ]. ( Note that this condition implies the hold-and-wait condition, but it is easier to deal with the conditions if the four are considered separately. ) </li>
+      </ol>
+    </li>
+  </ul>
+  <h4>7.2.2 Resource-Allocation Graph</h4>
+  <ul>
+    <li>In some cases deadlocks can be understood more clearly through the use of <strong>Resource-Allocation Graphs</strong>, having the following properties:
+      <ul>
+        <li>A set of resource categories, { R1, R2, R3, . . ., RN }, which appear as square nodes on the graph. Dots inside the resource nodes indicate specific instances of the resource. ( E.g. two dots might represent two laser printers. )</li>
+        <li>A set of processes, { P1, P2, P3,  . . ., PN } </li>
+        <li><strong>Request Edges - </strong>A set of directed arcs from Pi to Rj, indicating that process Pi has requested Rj, and is currently waiting for that resource to become available.</li>
+        <li><strong>Assignment Edges - </strong>A set of directed arcs from Rj to Pi indicating that resource Rj has been allocated to process Pi, and that Pi is currently holding resource Rj. </li>
+        <li>Note that a <strong>request edge</strong> can be converted into an <strong>assignment edge</strong> by reversing the direction of the arc when the request is granted. (&nbsp;However note also that request edges point to the category box, whereas assignment edges emanate from a particular instance dot within the box.&nbsp;)</li>
+        <li>For example:  </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter7/7_01_ResourceAllocation.jpg" width="250" height="360"><br>
+    <strong>Figure 7.1 - Resource allocation graph</strong>
+  </p>
+  <ul>
+    <li>If a resource-allocation graph contains no cycles, then the system is not deadlocked. ( When looking for cycles, remember that these are <em><strong>directed</strong></em> graphs. ) See the example in Figure 7.2 above. </li>
+    <li>If a resource-allocation graph does contain cycles <strong>AND</strong> each resource category contains only a single instance, then a deadlock exists.</li>
+    <li>If a resource category contains more than one instance, then the presence of a cycle in the resource-allocation graph indicates the <em>possibility</em> of a deadlock, but does not guarantee one. Consider, for example, Figures 7.3 and 7.4 below: </li>
+  </ul>
+  <p align="center"><img src="images/Chapter7/7_02_Deadlock.jpg" width="250" height="360"><br>
+    <strong>Figure 7.2 - Resource allocation graph with a deadlock</strong>
+  </p>
+  <p align="center"><img src="images/Chapter7/7_03_CycleNoDeadlock.jpg" width="275" height="346"><br>
+    <strong>Figure 7.3 - Resource allocation graph with a cycle but no deadlock</strong>
+  </p>
+</blockquote>
+<h3>7.3 Methods for Handling Deadlocks</h3>
+<ul>
+  <li>Generally speaking there are three ways of handling deadlocks:
+    <ol>
+      <li>Deadlock prevention or avoidance - Do not allow the system to get into a deadlocked state.</li>
+      <li>Deadlock detection and recovery - Abort a process or preempt some resources when deadlocks are detected.</li>
+      <li>Ignore the problem all together - If deadlocks only occur once a year or so, it may be better to simply let them happen and reboot as necessary than to incur the constant overhead and system performance penalties associated with deadlock prevention or detection. This is the approach that both Windows and UNIX take.</li>
+    </ol>
+  </li>
+  <li>In order to avoid deadlocks, the system must have additional information about all processes. In particular, the system must know what resources a process will or may request in the future. ( Ranging from a simple worst-case maximum to a complete resource request and release plan for each process, depending on the particular algorithm. )</li>
+  <li>Deadlock detection is fairly straightforward, but deadlock recovery requires either aborting processes or preempting resources, neither of which is an attractive alternative.</li>
+  <li>If deadlocks are neither prevented nor detected, then when a deadlock occurs the system will gradually slow down, as more and more processes become stuck waiting for resources currently held by the deadlock and by other waiting processes. Unfortunately this slowdown can be indistinguishable from a general system slowdown when a real-time process has heavy computing needs.   </li>
+</ul>
+<h3>7.4 Deadlock Prevention</h3>
+<ul>
+  <li>Deadlocks can be prevented by preventing at least one of the four required conditions: </li>
+</ul>
+<blockquote>
+  <h4>7.4.1 Mutual Exclusion</h4>
+  <ul>
+    <li>Shared resources such as read-only files do not lead to deadlocks. </li>
+    <li>Unfortunately some resources, such as printers and tape drives, require exclusive access by a single process. </li>
+  </ul>
+  <h4>7.4.2 Hold and Wait</h4>
+  <ul>
+    <li>To prevent this condition processes must be prevented from  holding one or more resources while simultaneously waiting for one or more others. There are several possibilities for this:
+      <ul>
+        <li>Require that all processes request all resources at one time. This can be wasteful of system resources if a process needs one resource early in its execution and doesn't need some other resource until much later.</li>
+        <li>Require that processes holding resources must release them before requesting new resources, and then re-acquire the released resources along with the new ones in a single new request. This can be a problem if a process has partially completed an operation using a resource and then fails to get it re-allocated after releasing it.</li>
+        <li>Either of the methods described above can lead to starvation if a process requires one or more popular resources.  </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>7.4.3 No Preemption</h4>
+  <ul>
+    <li>Preemption of process resource allocations can prevent this condition of deadlocks, when it is possible.
+      <ul>
+        <li>One approach is that if a process is forced to wait when requesting a new resource, then all  other resources previously held by this process are implicitly released, (&nbsp;preempted&nbsp;), forcing this process to re-acquire the old resources along with the new resources in a single request, similar to the previous discussion.</li>
+        <li>Another approach is that when a resource is requested and not available, then the system looks to see what other processes currently have those resources <em>and</em> are themselves blocked waiting for some other resource. If such a process is found, then some of their resources may get preempted and added to the list of resources for which the process is waiting.</li>
+        <li>Either of these approaches may be applicable for resources whose states are easily saved and restored, such as registers and memory, but are generally not applicable to other devices such as printers and tape drives.  </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>7.4.4 Circular Wait</h4>
+  <ul>
+    <li>One way to avoid circular wait is to number all resources, and to require that processes request resources only in strictly increasing ( or decreasing ) order. </li>
+    <li>In other words, in order to request resource Rj, a process must first release all Ri such that i &gt;= j.</li>
+    <li>One big challenge in this scheme is determining the relative ordering of the different resources</li>
+  </ul>
+</blockquote>
+<h3>7.5 Deadlock Avoidance</h3>
+<ul>
+  <li>The general idea behind deadlock avoidance is to prevent deadlocks from ever happening, by preventing at least one of the aforementioned conditions.</li>
+  <li>This requires more information about each process, AND tends to lead to low device utilization. ( I.e. it is a conservative approach. )</li>
+  <li>In some algorithms the scheduler only needs to know the <em>maximum</em> number of each resource that a process might potentially use. In more complex algorithms the scheduler can also take advantage of the <em>schedule</em> of exactly what resources may be needed in what order. </li>
+  <li>When a scheduler sees that starting a process or granting resource requests may lead to future deadlocks, then that process is just not started or the request is not granted. </li>
+  <li>A resource allocation <em><strong>state</strong></em> is defined by the number of available and allocated resources, and the maximum requirements of all processes in the system. </li>
+</ul>
+<blockquote>
+  <h4>7.5.1 Safe State</h4>
+  <ul>
+    <li>A state is <em><strong>safe</strong></em> if the system can allocate all resources requested by all processes ( up to their stated maximums ) without entering a deadlock state.</li>
+    <li>More formally, a state is safe if there exists a <em><strong>safe sequence</strong></em> of processes {&nbsp;P0, P1, P2, ..., PN&nbsp;} such that   all of the resource requests for Pi can be granted using the resources currently allocated to Pi and all processes Pj where j &lt; i. ( I.e. if all the processes prior to Pi finish and free up their resources, then Pi will be able to finish also, using the resources that they have freed up. ) </li>
+    <li>If a safe sequence does not exist, then the system is in an unsafe state, which <em><strong>MAY</strong></em> lead to deadlock. ( All safe states are deadlock free, but not all unsafe states lead to deadlocks. ) </li>
+  </ul>
+  <p align="center"><img src="images/Chapter7/7_06_StateSpaces.jpg" width="296" height="296"><br>
+    <strong>Figure 7.6 - Safe, unsafe, and deadlocked state spaces.</strong>
+  </p>
+  <ul>
+    <li>For example, consider a system with 12 tape drives, allocated as follows. Is this a safe state? What is the safe sequence? </li>
+  </ul>
+  <blockquote> <center>
+    <table width="400" border="1" cellspacing="5" cellpadding="2">
+      <tr>
+        <th scope="col">&nbsp;</th>
+        <th scope="col">Maximum Needs </th>
+        <th scope="col">Current Allocation </th>
+      </tr>
+      <tr>
+        <th scope="row">P0</th>
+        <td><div align="center">10</div></td>
+        <td><div align="center">5</div></td>
+      </tr>
+      <tr>
+        <th scope="row">P1</th>
+        <td><div align="center">4</div></td>
+        <td><div align="center">2</div></td>
+      </tr>
+      <tr>
+        <th scope="row">P2</th>
+        <td><div align="center">9</div></td>
+        <td><div align="center">2</div></td>
+      </tr>
+    </table>
+	</center>
+  </blockquote>
+  <ul>
+    <li>What happens to the above table if process P2 requests and is granted one more tape drive?</li>
+    <li>Key to the safe state approach is that when a request is made for resources, the request is granted only if the resulting allocation state is a safe one.  </li>
+  </ul>
+  <h4>7.5.2 Resource-Allocation Graph Algorithm</h4>
+  <ul>
+    <li>If resource categories have only single instances of their resources, then deadlock states can be detected by cycles in the resource-allocation graphs.</li>
+    <li>In this case, unsafe states can be recognized and avoided by augmenting the resource-allocation graph with <em><strong>claim edges</strong></em>, noted by dashed lines, which point from a process to a resource that it may request in the future.</li>
+    <li>In order for this technique to work, all claim edges must be added to the graph for any particular process before that process is allowed to request any resources. (&nbsp;Alternatively, processes may only make requests for resources for which they have already established claim edges, and claim edges cannot be added to any process that is currently holding resources.&nbsp;)</li>
+    <li>When a process makes a request, the claim edge Pi-&gt;Rj is converted to a request edge.   Similarly when a resource is released, the assignment reverts back to a claim edge. </li>
+    <li>This approach works by denying requests that would produce cycles in the resource-allocation graph, taking claim edges into effect.</li>
+    <li>Consider for example what happens when process P2 requests resource R2:  </li>
+  </ul>
+  <p align="center"><img src="images/Chapter7/7_07_DeadlockAvoidance.jpg" width="250" height="254"><br>
+  <strong>Figure 7.7 - Resource allocation graph for deadlock avoidance</strong></p>
+  <ul>
+    <li>The resulting resource-allocation graph would have a cycle in it, and so the request cannot be granted. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter7/7_08_UnsafeState.jpg" width="250" height="254"><br>
+    <strong>Figure 7.8 - An unsafe state in a resource allocation graph</strong>
+  </p>
+  <h4>7.5.3 Banker's Algorithm</h4>
+  <ul>
+    <li>For resource categories that contain more than one instance the resource-allocation graph method does not work, and more complex (&nbsp;and less efficient&nbsp;) methods must be chosen.</li>
+    <li>The Banker's Algorithm gets its name because it is a method that bankers could use to assure that when they lend out resources they will still be able to satisfy all their clients. (&nbsp;A banker won't loan out a little money to start building a house unless they are assured that they will later be able to loan out the rest of the money to finish the house.&nbsp;)</li>
+    <li>When a process starts up, it must state in advance the maximum allocation of resources it may request, up to the amount available on the system.</li>
+    <li>When a request is made, the scheduler determines whether granting the request would leave the system in a safe state. If not, then the process must wait until the request can be granted safely.</li>
+    <li>The banker's algorithm relies on several key data structures:
+      ( where n is the number of processes and m is the number of resource categories. )
+      <ul>
+        <li>Available[ m ] indicates how many resources are currently available of each type.</li>
+        <li>Max[ n ][ m ] indicates the maximum demand of each process of each resource.</li>
+        <li>Allocation[ n ][ m ] indicates the number of each resource category allocated to each process.</li>
+        <li>Need[ n ][ m ] indicates the remaining resources needed of each type for each process. (&nbsp;Note that Need[&nbsp;i&nbsp;][&nbsp;j&nbsp;] = Max[&nbsp;i&nbsp;][&nbsp;j&nbsp;] - Allocation[&nbsp;i&nbsp;][&nbsp;j&nbsp;] for all i, j.&nbsp;)</li>
+      </ul>
+    </li>
+    <li>For simplification of discussions, we make the following notations / observations:
+      <ul>
+        <li>One row of the Need vector, Need[ i ], can be treated as a vector corresponding to the needs of process i, and similarly for Allocation and Max.</li>
+        <li>A vector X is considered to be &lt;= a vector Y if X[&nbsp;i&nbsp;] &lt;= Y[&nbsp;i&nbsp;] for all i.       </li>
+      </ul>
+    </li>
+  </ul>
+  <blockquote>
+    <h4>7.5.3.1 Safety Algorithm</h4>
+    <ul>
+      <li>In order to apply the Banker's algorithm, we first need an algorithm for determining whether or not a particular state is safe.</li>
+      <li>This algorithm determines if the current state of a system is safe, according to the following steps:
+        <ol>
+          <li>Let Work and Finish be vectors of length m and n respectively.          </li>
+          <ul>
+            <li>Work is a working copy of the available resources, which will be modified during the analysis.</li>
+            <li>Finish is a vector of booleans indicating whether a particular process can finish. ( or has finished so far in the analysis. )</li>
+            <li>Initialize Work to Available, and Finish to false for all elements.</li>
+          </ul>
+          <li>Find an i such that both (A) Finish[ i ] == false, and (B) Need[ i ] &lt; Work. This process has not finished, but could with the given available working set. If no such i exists, go to step 4. </li>
+          <li>Set Work = Work + Allocation[ i ], and set Finish[ i ] to true. This corresponds to process i finishing up and releasing its resources back into the work pool. Then loop back to step 2. </li>
+          <li>If finish[ i ] == true for all i, then the state is a safe state, because a safe sequence has been found.  </li>
+        </ol>
+      </li>
+      <li>( JTB's Modification:
+        <ol>
+          <li>In step 1. instead of making Finish an array of booleans initialized to false, make it an array of ints initialized to 0. Also initialize an int s = 0 as a step counter. </li>
+          <li>In step 2, look for Finish[ i ] == 0.</li>
+          <li>In step 3, set Finish[ i ] to  ++s. S is counting the number of finished processes. </li>
+          <li>For step 4, the test can be either Finish[ i ] &gt; 0 for all i, or s &gt;= n. The benefit of this method is that if a safe state exists, then Finish[ ] indicates one safe sequence ( of possibly many. ) ) </li>
+        </ol>
+      </li>
+    </ul>
+    <h4>7.5.3.2 Resource-Request Algorithm ( The Bankers Algorithm )</h4>
+    <ul>
+      <li>Now that we have a tool for determining if a particular state is safe or not, we are now ready to look at the Banker's algorithm itself.</li>
+      <li>This algorithm determines if a new request is safe, and grants it only if it is safe to do so. </li>
+      <li>When a request is made ( that does not exceed currently available resources ), pretend it has been granted, and then see if the resulting state is a safe one. If so, grant the request, and if not, deny the request, as follows: 
+        <ol>
+          <li>Let Request[ n ][ m ] indicate the number of resources of each type currently requested by processes. If Request[ i ] &gt; Need[ i ] for any process i, raise an error condition.</li>
+          <li>If Request[ i ] &gt; Available for any process i, then that process must wait for resources to become available. Otherwise the process can continue to step 3.</li>
+          <li>Check to see if the request can be granted safely, by pretending it has been granted and then seeing if the resulting state is safe. If so, grant the request, and if not, then the process must wait until its request can be granted safely.The procedure for granting a request ( or pretending to for testing purposes ) is:
+            <ul>
+              <li>Available = Available - Request</li>
+              <li>Allocation = Allocation + Request</li>
+              <li>Need = Need - Request    </li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+    </ul>
+    <h4>7.5.3.3 An Illustrative Example</h4>
+    <ul>
+      <li>Consider the following situation:</li>
+    </ul>
+    <blockquote>
+      <p align="center"><img src="images/Chapter7/7_IllustrativeExample.jpg" width="452" height="221"></p>
+    </blockquote>
+    <ul>
+      <li>And now consider what happens if process P1 requests 1 instance of A and 2 instances of C. ( Request[ 1 ] = ( 1, 0, 2 ) )</li>
+    </ul>
+    <blockquote>
+      <p align="center"><img src="images/Chapter7/7_IllustrativeExample_2.jpg" width="406" height="236">  </p>
+    </blockquote>
+    <ul>
+      <li>What about requests of ( 3, 3,0 ) by P4? or ( 0, 2, 0 ) by P0? Can these be safely granted? Why or why not? </li>
+    </ul>
+  </blockquote>
+</blockquote>
+<h3>7.6 Deadlock Detection</h3>
+<ul>
+  <li>If deadlocks are not avoided, then another approach is to detect when they have occurred and recover somehow.</li>
+  <li>In addition to the performance hit of constantly checking for deadlocks, a policy / algorithm must be in place for recovering from deadlocks, and there is potential for lost work when processes must be aborted or have their resources preempted.  </li>
+</ul>
+<blockquote>
+  <h4>7.6.1 Single Instance of Each Resource Type</h4>
+  <ul>
+    <li>If each resource category has a single instance, then we can use a variation of the resource-allocation graph known as a <em><strong>wait-for graph</strong></em>.</li>
+    <li>A wait-for graph can be constructed from a resource-allocation graph by eliminating the resources and collapsing the associated edges, as shown in the figure below.</li>
+    <li>An arc from Pi to Pj in a wait-for graph indicates that process Pi is waiting for a resource that process Pj is currently holding.  </li>
+  </ul>
+  <p align="center"><img src="images/Chapter7/7_09_TwoGraphs.jpg" width="664" height="436"><br>
+  <strong>Figure 7.9 - (a) Resource allocati</strong><strong>on graph. (b) Corresponding wait-for graph</strong></p>
+  <ul>
+    <li>As before, cycles in the wait-for graph indicate deadlocks.</li>
+    <li>This algorithm must maintain the wait-for graph, and periodically search it for cycles.  </li>
+  </ul>
+  <h4>7.6.2 Several Instances of a Resource Type</h4>
+  <ul>
+    <li>The detection algorithm outlined here is essentially the same as the Banker's algorithm, with two subtle differences:
+      <ul>
+        <li>In step 1, the Banker's Algorithm sets Finish[ i ] to false for all i. The algorithm presented here sets Finish[ i ] to false only if Allocation[ i ] is not zero. If the currently allocated resources for this process are zero, the algorithm sets Finish[ i ] to true. This is essentially assuming that IF all of the other processes can finish, then this process can finish also. Furthermore, this algorithm is specifically looking for which processes are involved in a deadlock situation, and a process that does not have any resources allocated cannot be involved in a deadlock, and so can be removed from any further consideration.</li>
+        <li>Steps 2 and 3 are unchanged</li>
+        <li>In step 4, the basic Banker's Algorithm says that if Finish[ i ] == true for all i, that there is no deadlock. This algorithm is more specific, by stating that if Finish[ i ] == false for any process Pi, then that process is specifically involved in the deadlock which has been detected.</li>
+      </ul>
+    </li>
+    <li>( Note: An alternative method was presented above, in which Finish held integers instead of booleans. This vector would be initialized to all zeros, and then filled with increasing integers as processes are detected which can finish. If any processes are left at zero when the algorithm completes, then there is a deadlock, and if not, then the integers in finish describe a safe sequence. To modify this algorithm to match this section of the text, processes with allocation = zero could be filled in with N, N - 1, N&nbsp;-&nbsp;2,  etc. in step 1, and any processes left with Finish = 0 in step 4 are the deadlocked processes. ) </li>
+    <li>Consider, for example, the following state, and determine if it is currently deadlocked:</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter7/7_IllustrativeExample_3.jpg" width="384" height="217"></p>
+  </blockquote>
+  <ul>
+    <li>Now suppose that process P2 makes a request for an additional instance of type C, yielding the state shown below. Is the system now deadlocked?</li>
+  </ul>
+  <blockquote>
+    <p align="center"><img src="images/Chapter7/7_IllustrativeExample_4.jpg" width="388" height="217"></p>
+  </blockquote>
+  <h4>7.6.3 Detection-Algorithm Usage</h4>
+  <ul>
+    <li>When should the deadlock detection be done? Frequently, or infrequently?</li>
+    <li>The answer may depend on how frequently deadlocks are expected to occur, as well as the possible consequences of not catching them immediately. ( If deadlocks are not removed immediately when they occur, then more and more processes can &quot;back up&quot; behind the deadlock, making the eventual task of unblocking the system more difficult and possibly damaging to more processes. )</li>
+    <li>There are two obvious approaches, each with trade-offs:
+      <ol>
+        <li>Do deadlock detection after every resource allocation which cannot be immediately granted. This has the advantage of detecting the deadlock right away, while the minimum number of processes are involved in the deadlock. ( One might consider that the process whose request triggered the deadlock condition is the &quot;cause&quot; of the deadlock, but realistically all of the processes in the cycle are equally responsible for the resulting deadlock. ) The down side of this approach is the extensive overhead and performance hit caused by checking for deadlocks so frequently.</li>
+        <li>Do deadlock detection only when there is some clue that a deadlock may have occurred, such as when CPU utilization reduces to 40% or some other magic number. The advantage is that deadlock detection is done much less frequently, but the down side is that it becomes impossible to detect the processes involved in the original deadlock, and so deadlock recovery can be more complicated and damaging to more processes.  </li>
+        <li>( As I write this, a third alternative comes to mind: Keep a historical log of resource allocations, since that last known time of no deadlocks. Do deadlock checks periodically ( once an hour or when CPU usage is low?), and then use the historical log to trace through and determine when the deadlock occurred and what processes caused the initial deadlock. Unfortunately I'm not certain that breaking the original deadlock would then free up the resulting log jam. ) </li>
+      </ol>
+    </li>
+  </ul>
+</blockquote>
+<h3>7.7 Recovery From Deadlock       </h3>
+<ul>
+  <li>There are three basic approaches to recovery from deadlock:
+    <ol>
+      <li>Inform the system operator, and allow him/her to take manual intervention.</li>
+      <li>Terminate one or more processes involved in the deadlock</li>
+      <li>Preempt resources.    </li>
+    </ol>
+  </li>
+</ul>
+<blockquote>
+  <h4>7.7.1 Process Termination</h4>
+  <ul>
+    <li>Two basic approaches, both of which recover resources allocated to terminated processes:
+      <ul>
+        <li>Terminate all processes involved in the deadlock. This definitely solves the deadlock, but at the expense of terminating more processes than would be absolutely necessary.</li>
+        <li>Terminate processes one by one until the deadlock is broken. This is more conservative, but requires doing deadlock detection after each step.</li>
+      </ul>
+    </li>
+    <li>In the latter case there are many factors that can go into deciding which processes to terminate next:
+      <ol>
+        <li>Process priorities.</li>
+        <li>How long the process has been running, and how close it is to finishing.</li>
+        <li>How many and what type of resources is the process holding. ( Are they easy to preempt and restore? )</li>
+        <li>How many more resources does the process need to complete.</li>
+        <li>How many processes will need to be terminated</li>
+        <li>Whether the process is interactive or batch.</li>
+        <li>( Whether or not the process has made non-restorable changes to any resource. )   </li>
+      </ol>
+    </li>
+  </ul>
+  <h4>7.7.2 Resource Preemption </h4>
+  <ul>
+    <li>When preempting resources to relieve deadlock, there are three important issues to be addressed:
+      <ol>
+        <li><strong>Selecting a victim </strong>- Deciding which resources to preempt from which processes involves many of the same decision criteria outlined above.</li>
+        <li><strong>Rollback</strong> - Ideally one would like to roll back a preempted process to a safe state prior to the point at which that resource was originally allocated to the process. Unfortunately it can be difficult or impossible to determine what such a safe state is, and so the only safe rollback is to roll back all the way back to the beginning. ( I.e. abort the process and make it start over. )</li>
+        <li><strong>Starvation </strong> - How do you guarantee that a process won't starve because its resources are constantly being preempted? One option would be to use a priority system, and increase the priority of a process every time its resources get preempted. Eventually it should get a high enough priority that it won't get preempted any more. </li>
+      </ol>
+    </li>
+  </ul>
+</blockquote>
+<h3>7.8 Summary</h3>
+</BODY>
+</HTML>

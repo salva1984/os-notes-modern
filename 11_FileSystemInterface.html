@@ -1,0 +1,439 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="File-system interface course notes.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: File-System Interface</TITLE>
+  <style type="text/css">
+<!--
+.style1 {
+	color: #FF0000;
+	font-weight: bold;
+}
+-->
+  </style>
+</HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  File-System Interface 
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Ninth Edition &quot;, Chapter 11  
+</OL>
+
+<h3>11.1 File Concept</h3>
+<blockquote>
+  <h4>11.1.1 File Attributes</h4>
+  <ul>
+      <li>Different OSes keep track of different file attributes, including: 
+        <ul>
+          <li><strong>Name</strong> - Some systems give special significance to names, and particularly extensions ( .exe, .txt, etc. ), and some do not. Some extensions may be of significance to the OS ( .exe ), and others only to certain applications ( .jpg ) </li>
+          <li><strong>Identifier</strong> ( e.g. inode number )</li>
+          <li><strong>Type</strong> - Text, executable, other binary, etc. </li>
+          <li><strong>Location</strong> - on the hard drive. </li>
+          <li><strong>Size</strong></li>
+          <li><strong>Protection</strong></li>
+          <li><strong>Time &amp; Date</strong></li>
+          <li><strong>User ID   </strong></li>
+        </ul>
+        <blockquote>
+          <p align="center"><img src="images/Chapter11/11_01_FileInfo.jpg" width="605" height="1595"></p>
+        </blockquote>
+    </li>
+  </ul>
+  <h4>11.1.2 File Operations</h4>
+  <ul>
+      <li>The file ADT supports many common operations:
+        <ul>
+          <li>Creating a file</li>
+          <li>Writing a file</li>
+          <li>Reading a file</li>
+          <li>Repositioning within a file</li>
+          <li>Deleting a file</li>
+          <li>Truncating a file.    </li>
+        </ul>
+    </li>
+      <li>Most OSes require that files be <em><strong>opened</strong></em> before access and <em><strong>closed</strong></em> after all access is complete. Normally the programmer must open and close files explicitly, but some rare systems open the file automatically at first access. Information about currently open files is stored in an <em><strong>open file table</strong></em>, containing for example:
+        <ul>
+          <li><strong>File pointer</strong> - records the current position in the file, for the next read or write access.</li>
+          <li><strong>File-open count</strong> - How many times has the current file been opened (&nbsp;simultaneously by different processes&nbsp;)      and not yet closed? When this counter reaches zero the file can be removed from the table.</li>
+          <li><strong>Disk location of the file.</strong></li>
+          <li><strong>Access rights</strong></li>
+        </ul>
+      </li>
+      <li>Some systems provide support for <em><strong>file locking.</strong></em>
+        <ul>
+          <li>A <em><strong>shared lock</strong></em> is for reading only.</li>
+          <li>A <em><strong>exclusive lock </strong></em>is for writing as well as reading.</li>
+          <li>An <em><strong>advisory lock</strong></em> is informational only, and not enforced. ( A &quot;Keep Out&quot; sign, which may be ignored. )</li>
+          <li>A <em><strong>mandatory lock</strong></em> is enforced. ( A truly locked door. )</li>
+          <li>UNIX used advisory locks, and Windows uses mandatory locks. </li>
+        </ul>
+      </li>
+  </ul>
+  <blockquote>
+    <blockquote>
+      <div align="center"><img src="images/Chapter11/11_02_JavaFileLocking.jpg" width="733" height="1120"><br>
+        <strong>Figure 11.2 - File-locking example in Java.</strong>
+      </div>
+    </blockquote>
+    <h4 align="left">11.1.3 File Types</h4>
+    <ul>
+      <li>Windows ( and some other systems ) use special file extensions to indicate the type of each file:</li>
+    </ul>
+    <p align="center"><img src="images/Chapter11/11_03_CommonFileTypes.jpg" width="542" height="581"><br>
+      <strong>Figure 11.3 - Common file types.</strong>
+    </p>
+  </blockquote>
+  <ul>
+    <li>Macintosh stores a creator attribute for each file, according to the program that first created it with the create( ) system call.</li>
+    <li>UNIX stores magic numbers at the beginning of certain files. ( Experiment with the &quot;file&quot; command, especially in directories such as /bin and /dev ) </li>
+  </ul>
+  <h4>11.1.4 File Structure</h4>
+  <ul>
+    <li>Some files contain an internal structure, which may or may not be known to the OS.</li>
+    <li>For the OS to support particular file formats increases the size and complexity of the OS.</li>
+    <li>UNIX treats all files as sequences of bytes, with no further consideration of the internal structure. ( With the exception of executable binary programs, which it must know how to load and find the first executable statement, etc. )</li>
+    <li>Macintosh files have two <em><strong>forks</strong></em> - a <em><strong>resource fork</strong></em>, and a <em><strong>data fork</strong></em>. The resource fork contains information relating to the UI, such as icons and button images, and can be modified independently of the data fork,      which contains the code or data as appropriate. </li>
+  </ul>
+  <h4>11.1.5 Internal File Structure</h4>
+  <ul>
+    <li>Disk files are accessed in units of physical blocks, typically 512 bytes or some power-of-two multiple thereof. (&nbsp;Larger physical disks use larger block sizes, to keep the range of block numbers within the range of a 32-bit integer.&nbsp;)</li>
+    <li>Internally files are organized in units of logical units, which may be as small as a single byte, or may be a larger size corresponding to some data record or structure size.</li>
+    <li>The number of logical units which fit into one physical block determines its <em><strong>packing</strong></em>, and has an impact on the amount of internal fragmentation (&nbsp;wasted space&nbsp;) that occurs.</li>
+    <li>As a general rule, half a physical block is wasted for each file, and the larger the block sizes the more space is lost to internal fragmentation.   </li>
+  </ul>
+</blockquote>
+<h3>11.2 Access Methods</h3>
+<blockquote>
+  <h4>11.2.1 Sequential Access</h4>
+  <ul>
+    <li>A sequential access file emulates magnetic tape operation, and generally supports a few operations:
+      <ul>
+<li>read next - read a record and advance the tape to the next position. </li>
+<li>write next - write a record and advance the tape to the next position. </li>
+<li>rewind</li>
+      <li>skip n records - May or may not be supported. N may be limited to positive numbers, or may be limited to +/- 1. </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_04_SequentialAccessFile.jpg" width="589" height="167"><br>
+    <strong>Figure 11.4 - Sequential-access file.</strong>
+  </p>
+  <h4>11.2.2 Direct Access</h4>
+  <ul>
+    <li>Jump to any record and read that record. Operations supported include:
+      <ul>
+<li>read n - read record number n. ( Note an argument is now required. ) </li>
+<li>write n - write record number n. ( Note an argument is now required. ) </li>
+<li>jump to record n - could be 0 or the end of file.</li>
+      <li>Query current record - used to return back to this record later.</li>
+      <li>Sequential access can be easily emulated using direct access. The inverse is complicated and inefficient.  </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_05_SequentialAccessSimulation.jpg" width="557" height="188"><br>
+    <strong>Figure 11.5 - Simulation of sequential access on a direct-access file.</strong>
+  </p>
+  <h4>11.2.3 Other Access Methods</h4>
+  <ul>
+    <li>An indexed access scheme can be easily built on top of a direct access system. Very large files may require a multi-tiered indexing scheme, i.e. indexes of indexes. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_06_IndexAndRelativeFiles.jpg" width="604" height="356"><br>
+    <strong>Figure 11.6 - Example of index and relative files.</strong>
+  </p>
+</blockquote>
+<h3>11.3 Directory Structure</h3>
+<blockquote>
+  <h4>11.3.1 Storage Structure</h4>
+  <ul>
+    <li>A disk can be used in its entirety for a file system.</li>
+    <li>Alternatively a physical disk can be broken up into multiple <em><strong>partitions, slices, or mini-disks</strong></em>, each of which becomes a virtual disk and can have its own filesystem. ( or be used for raw storage, swap space, etc. )</li>
+    <li>Or, multiple physical disks can be combined into one <em><strong>volume</strong></em>, i.e. a larger virtual disk, with its own filesystem spanning the physical disks.    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_07_TypicalFileSystem.jpg" width="628" height="344"><br>
+    <strong>Figure 11.7 - A typical file-system organization.</strong>
+  </p>
+  <p align="center"><img src="images/Chapter11/11_08_SolarisFileSystems.jpg" width="440" height="614"></p>
+  <h4>11.3.2 Directory Overview</h4>
+  <ul>
+    <li>Directory operations to be supported include:
+      <ul>
+        <li>Search for a file</li>
+        <li>Create a file - add to the directory</li>
+        <li>Delete a file - erase from the directory</li>
+        <li>List a directory - possibly ordered in different ways. </li>
+        <li>Rename a file - may change sorting order</li>
+        <li>Traverse the file system.    </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>11.3.3. Single-Level Directory</h4>
+  <ul>
+    <li>Simple to implement, but each file must have a unique name. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_09_SingleLevel.jpg" width="707" height="146">    <strong><br>
+  Figure 11.9 - Single-level directory.</strong></p>
+  <h4>11.3.4 Two-Level Directory</h4>
+  <ul>
+    <li>Each user gets their own directory space.</li>
+    <li>File names only need to be unique within a given user's directory.</li>
+    <li>A master file directory is used to keep track of each users directory, and must be maintained when users are added to or removed from the system.</li>
+    <li>A separate directory is generally needed for system ( executable ) files.</li>
+    <li>Systems may or may not allow users to access other directories besides their own
+      <ul>
+        <li>If access to other directories is allowed, then provision must be made to specify the directory being accessed.</li>
+        <li>If access is denied, then special consideration must be made for users to run programs located in system directories. A <em><strong>search path</strong></em> is the list of directories in which to search for executable programs, and can be set uniquely for each user.     </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_10_TwoLevelStructure.jpg" width="750" height="251"><br>
+  <strong>Figure 11.10 - Two-level directory structure.</strong></p>
+  <h4>11.3.5 Tree-Structured Directories</h4>
+  <ul>
+    <li>An obvious extension to the two-tiered directory structure, and the one with which we are all most familiar.</li>
+    <li>Each user / process has the concept of a <em><strong>current directory</strong></em> from which all (&nbsp;relative&nbsp;) searches take place.</li>
+    <li>Files may be accessed using either absolute pathnames (&nbsp;relative to the root of the tree&nbsp;) or relative pathnames (&nbsp;relative to the current directory.&nbsp;)</li>
+    <li>Directories are stored the same as any other file in the system, except there is a bit that identifies them as directories, and they have some special structure that the OS understands. </li>
+    <li>One question for consideration is whether or not to allow the removal of directories that are not empty - Windows requires that directories be emptied first, and UNIX provides an option for deleting entire sub-trees.   </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_11_TreeStructure.jpg" width="757" height="525"><br>
+    <strong>Figure 11.11 - Tree-structured directory structure.</strong>
+  </p>
+  <h4>11.3.6 Acyclic-Graph Directories</h4>
+  <ul>
+    <li>When the same files need to be accessed in more than one place in the directory structure (&nbsp;e.g. because they are being shared by more than one user / process&nbsp;), it can be useful to provide an acyclic-graph structure. (&nbsp;Note the <em><strong>directed</strong></em> arcs from parent to child.&nbsp;)</li>
+    <li>UNIX provides two types of <em><strong>links</strong></em> for implementing the acyclic-graph structure. ( See &quot;man ln&quot; for more details. )
+      <ul>
+        <li>A <em><strong>hard link</strong></em> ( usually just called a link ) involves multiple directory entries that both refer to the same file. Hard links are only valid for ordinary files in the same filesystem. </li>
+        <li>A <em><strong>symbolic link</strong></em>, that involves a special file, containing information about where to find the linked file. Symbolic links may be used to link directories and/or files in other filesystems, as well as ordinary files in the current filesystem.</li>
+      </ul>
+    </li>
+    <li>Windows only supports symbolic links, termed<em><strong> shortcuts. </strong></em></li>
+    <li>Hard links require a<em><strong> reference count</strong></em>, or <em><strong>link count</strong></em> for each file, keeping track of how many directory entries are currently referring to this file. Whenever one of the references is removed the link count is reduced, and when it reaches zero, the disk space can be reclaimed.</li>
+    <li>For symbolic links there is some question as to what to do with the symbolic links when the original file is moved or deleted:
+      <ul>
+        <li>One option is to find all the symbolic links and adjust them also.</li>
+        <li>Another is to leave the symbolic links dangling, and discover that they are no longer   valid the next time they are used.</li>
+        <li>What if the original file is removed, and replaced with another file having the same name before the symbolic link is next used? </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_12_AcyclicGraph.jpg" width="513" height="418"><br>
+    <strong>Figure 11.12 - Acyclic-graph directory structure.</strong>
+  </p>
+  <h4>11.3.7 General Graph Directory</h4>
+  <ul>
+    <li>If cycles are allowed in the graphs, then several problems can arise:
+      <ul>
+        <li>Search algorithms can go into infinite loops. One solution is to not follow links in search algorithms. ( Or not to follow symbolic links, and to only allow symbolic links to refer to directories. ) </li>
+        <li>Sub-trees can become disconnected from the rest of the tree and still not have their reference counts reduced to zero. Periodic garbage collection is required to detect and resolve this problem. ( chkdsk in DOS and fsck in UNIX search for these problems, among others, even though cycles are not supposed to be allowed in either system. Disconnected disk blocks that are not marked as free are added back to the file systems with made-up file names, and can usually be safely deleted. )  </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter11/11_13_GeneralGraph.jpg" width="654" height="395"><br>
+    <strong>Figure 11.13 - General graph directory.</strong>
+  </p>
+</blockquote>
+<h3>11.4 File-System Mounting</h3>
+<ul>
+  <li>The basic idea behind mounting file systems is to combine multiple file systems into one large tree structure.</li>
+  <li>The mount command is given a filesystem to mount and a <em><strong>mount point</strong></em> ( directory ) on which to attach it.</li>
+  <li>Once a file system is mounted onto a mount point, any further references to that directory actually refer to the root of the mounted file system.</li>
+  <li>Any files ( or sub-directories ) that had been stored in the mount point directory prior to mounting the new filesystem are now hidden by the mounted filesystem, and are no longer available. For this reason some systems only allow mounting onto empty directories.</li>
+  <li>Filesystems can only be mounted by root, unless root has previously configured certain filesystems to be mountable onto certain pre-determined mount points. ( E.g. root may allow users to mount floppy filesystems to /mnt or something like it. ) Anyone can run the mount command to see what filesystems are currently mounted.</li>
+  <li>Filesystems may be mounted read-only, or have other restrictions imposed.  </li>
+</ul>
+<p align="center"><img src="images/Chapter11/11_14_MountVolumes.jpg" width="718" height="425"><br>
+  <strong>Figure 11.14 - File system. (a) Existing system. (b) Unmounted volume.</strong>
+</p>
+<p align="center"><img src="images/Chapter11/11_15_MountPoint.jpg" width="329" height="387"><br>
+  <strong>Figure 11.15 - Mount point.</strong></p>
+<ul>
+  <li>The traditional Windows OS runs an extended two-tier directory structure, where the first tier of the structure separates volumes by drive letters, and a tree structure is implemented below that level.</li>
+  <li>Macintosh runs a similar system, where each new volume that is found is automatically mounted and added to the desktop when it is found.</li>
+  <li>More recent Windows systems allow filesystems to be mounted to any directory in the filesystem, much like UNIX.   </li>
+</ul>
+<h3>11.5 File Sharing</h3>
+<blockquote>
+  <h4>11.5.1 Multiple Users</h4>
+  <ul>
+    <li>On a multi-user system, more information needs to be stored for each file:
+      <ul>
+        <li>The owner ( user ) who owns the file, and who can control its access.</li>
+        <li>The group of other user IDs that may have some special access to the file.</li>
+        <li>What access rights are afforded to the owner ( <span class="style1">U</span>ser ), the <span class="style1">G</span>roup, and to the rest of the world ( the universe, a.k.a. <span class="style1">O</span>thers. )   </li>
+        <li>Some systems have more complicated access control, allowing or denying specific accesses to specifically named users or groups. </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>11.5.2 Remote File Systems</h4>
+  <ul>
+    <li>The advent of the Internet introduces issues for accessing files stored on remote computers
+      <ul>
+        <li>The original method was ftp, allowing individual files to be transported across systems as needed. Ftp can be either account and password controlled, or <em><strong>anonymous</strong></em>, not requiring any user name or password. </li>
+        <li>Various forms of <em><strong>distributed file systems</strong></em> allow remote file systems to be mounted onto a local directory structure, and accessed using normal file access commands. (&nbsp;The actual files are still transported across the network as needed, possibly using ftp as the underlying transport mechanism.&nbsp;)</li>
+        <li>The WWW has made it easy once again to access files on remote systems without mounting their filesystems, generally using (&nbsp;anonymous&nbsp;) ftp as the underlying file transport mechanism.    </li>
+      </ul>
+    </li>
+  </ul>
+  <blockquote>
+    <h4>11.5.2.1 The Client-Server Model</h4>
+    <ul>
+      <li>When one computer system remotely mounts a filesystem that is physically located on another system, the system which physically owns the files acts as a <em><strong>server</strong></em>, and the system which mounts them is the <em><strong>client.</strong></em></li>
+      <li>User IDs and group IDs must be consistent across both systems for the system to work properly. (&nbsp;I.e. this is most applicable across multiple computers managed by the same organization, shared by a common group of users.&nbsp;)</li>
+      <li>The same computer can be both a client and a server. (&nbsp;E.g. cross-linked file systems.&nbsp;)</li>
+      <li>There are a number of security concerns involved in this model:
+        <ul>
+          <li>Servers commonly restrict mount permission to certain trusted systems only. Spoofing (&nbsp;a computer pretending to be a different computer&nbsp;) is a potential security risk.</li>
+          <li>Servers may restrict remote access to read-only.</li>
+          <li>Servers restrict which filesystems may be remotely mounted. Generally the information within those subsystems is limited, relatively public, and protected by frequent backups.</li>
+        </ul>
+      </li>
+      <li>The NFS (&nbsp;Network File System&nbsp;) is a classic example of such a system.  </li>
+    </ul>
+    <h4>11.5.2.2 Distributed Information Systems</h4>
+    <ul>
+      <li>The <em><strong>Domain Name System, DNS, </strong></em>provides for a unique naming system across all of the Internet.</li>
+      <li>Domain names are maintained by the <em><strong>Network Information System, NIS</strong></em>, which unfortunately has several security issues. NIS+ is a more secure version, but has not yet gained the same widespread acceptance as NIS.</li>
+      <li>Microsoft's <em><strong>Common Internet File System, CIFS</strong></em>, establishes a <em><strong>network login</strong></em> for each user on a networked system with shared file access. Older Windows systems used <em><strong>domains</strong></em>, and newer systems ( XP, 2000 ), use <em><strong>active directories.</strong></em> User names must match across the network for this system to be valid.</li>
+      <li>A newer approach is the<em><strong> Lightweight Directory-Access Protocol, LDAP,</strong></em> which provides a <em><strong>secure single sign-on</strong></em> for all users to access all resources on a network. This is a secure system which is gaining in popularity, and which has the maintenance advantage of combining authorization information in one central location. </li>
+    </ul>
+    <h4>11.5.2.3 Failure Modes</h4>
+    <ul>
+      <li>When a local disk file is unavailable, the result is generally known immediately, and is generally non-recoverable. The only reasonable response is for the response to fail.</li>
+      <li>However when a remote file is unavailable, there are many possible reasons, and whether or not it is unrecoverable is not readily apparent. Hence most remote access systems allow for blocking or delayed response, in the hopes that the remote system (&nbsp;or the network&nbsp;) will come back up eventually. </li>
+    </ul>
+  </blockquote>
+  <h4>11.5.3 Consistency Semantics </h4>
+  <ul>
+    <li><em><strong>Consistency Semantics</strong></em> deals with the consistency between the views of shared files on a networked system. When one user changes the file, when do other users see the changes?</li>
+    <li>At first glance this appears to have all of the synchronization issues discussed in Chapter 6. Unfortunately the long delays involved in network operations prohibit the use of atomic operations as discussed in that chapter.  </li>
+  </ul>
+  <blockquote>
+    <h4>11.5.3.1 UNIX Semantics</h4>
+    <ul>
+      
+      <li>The UNIX file system uses the following semantics:
+        <ul>
+          <li>Writes to an open file are immediately visible to any other user who has the file open.</li>
+          <li>One implementation uses a shared location pointer, which is adjusted for all sharing users.</li>
+        </ul>
+      </li>
+      <li>The file is associated with a single exclusive physical resource, which may delay some accesses. </li>
+    </ul>
+    <h4>11.5.3.2 Session Semantics</h4>
+    <ul>
+      <li>The Andrew File System, AFS uses the following semantics:
+        <ul>
+          <li>Writes to an open file are not immediately visible to other users.</li>
+          <li>When a file is closed, any changes made become available only to users who open the file at a later time.</li>
+        </ul>
+      </li>
+      <li>According to these semantics, a file can be associated with multiple (&nbsp;possibly different&nbsp;) views. Almost no constraints are imposed on scheduling accesses.  No user is delayed in reading or writing their personal copy of the file.</li>
+      <li>AFS file systems may be accessible by systems around the world. Access control is maintained through (&nbsp;somewhat&nbsp;) complicated access control lists, which may grant access to the entire world (&nbsp;literally&nbsp;) or to specifically named users accessing the files from specifically named remote environments. </li>
+    </ul>
+    <h4>11.5.3.3 Immutable-Shared-Files Semantics</h4>
+    <ul>
+      <li>Under this system, when a file is declared as <em><strong>shared</strong></em> by its creator, it becomes immutable and the name cannot be re-used for any other resource. Hence it becomes read-only, and shared access is simple. </li>
+    </ul>
+  </blockquote>
+</blockquote>
+<h3>11.6 Protection</h3>
+<ul>
+  <li>Files must be kept safe for reliability (&nbsp;against accidental damage&nbsp;), and protection (&nbsp;against deliberate malicious access.&nbsp;) The former is usually managed with backup copies. This section discusses the latter.</li>
+  <li>One simple protection scheme is to remove all access to a file. However this makes the file unusable, so some sort of controlled access must be arranged.  </li>
+</ul>
+<blockquote>
+  <h4>11.6.1 Types of Access</h4>
+  <ul>
+    <li>The following low-level operations are often controlled:
+      <ul>
+        <li>Read - View the contents of the file</li>
+        <li>Write - Change the contents of the file.</li>
+        <li>Execute - Load the file onto the CPU and follow the instructions contained therein.</li>
+        <li>Append - Add to the end of an existing file.</li>
+        <li>Delete - Remove a file from the system.</li>
+        <li>List -View the name and other attributes of files on the system. </li>
+      </ul>
+    </li>
+    <li>Higher-level operations, such as copy, can generally be performed through combinations of the above. </li>
+  </ul>
+  <h4>11.6.2 Access Control</h4>
+  <ul>
+    <li>One approach is to have complicated<em><strong> Access Control Lists, ACL, </strong></em>which specify exactly what access is allowed or denied for specific users or groups.
+      <ul>
+        <li>The AFS uses this system for distributed access.</li>
+        <li>Control is very finely adjustable, but may be complicated, particularly when the specific users involved are unknown. (&nbsp;AFS allows some wild cards, so for example all users on a certain remote system may be trusted, or a given username may be trusted when accessing from any remote system.&nbsp;)</li>
+      </ul>
+    </li>
+    <li>UNIX uses a set of 9 access control bits, in three groups of three. These correspond to R, W, and X permissions for each of the Owner, Group, and Others. (&nbsp;See &quot;man chmod&quot; for full details.&nbsp;) The RWX bits control the following privileges for ordinary files and directories:</li>
+  </ul>
+  <blockquote>
+    <table width="600" border="1" cellspacing="5" cellpadding="2">
+      <tr>
+        <th scope="col"><p>bit</p>        </th>
+        <th scope="col">Files</th>
+        <th scope="col">Directories</th>
+      </tr>
+      <tr>
+        <th scope="row">R</th>
+        <td>Read (&nbsp;view&nbsp;) file contents. </td>
+        <td>Read directory contents. Required to get a listing of the directory. </td>
+      </tr>
+      <tr>
+        <th scope="row">W</th>
+        <td>Write (&nbsp;change&nbsp;) file contents. </td>
+        <td>Change directory contents. Required to create or delete files. </td>
+      </tr>
+      <tr>
+        <th scope="row">X</th>
+        <td>Execute file contents as a program. </td>
+        <td>Access detailed directory information. Required to get a long listing, or to access any specific file in the directory. Note that if a user has X but not R permissions on a directory, they can still access specific files, but only if they already know the name of the file they are trying to access. </td>
+      </tr>
+    </table>
+  </blockquote>
+  <ul>
+    <li>In addition there are some special bits that can also be applied:
+      <ul>
+        <li>The set user ID (&nbsp;SUID&nbsp;) bit and/or the set group  ID (&nbsp;SGID&nbsp;) bits applied to executable files temporarily change the identity of whoever runs the program to match that of the owner / group of the executable program. This allows users running specific programs to have access to files (&nbsp;<em><strong>while running that program&nbsp;</strong></em>) to which they would normally be unable to access. Setting of these two bits is usually restricted to root, and must be done with caution, as it introduces a potential security leak. </li>
+        <li>The sticky bit on a directory modifies write permission, allowing users to only delete files for which they are the owner. This allows everyone to create files in /tmp, for example, but to only delete files which they have created, and not anyone else's.</li>
+        <li>The SUID, SGID, and sticky bits are indicated with an S, S, and T in the positions for execute permission for the user, group, and others, respectively. If the letter is lower case, (&nbsp;s,&nbsp;s,&nbsp;t&nbsp;), then the corresponding execute permission is not also given. If it is upper case, (&nbsp;S,&nbsp;S,&nbsp;T&nbsp;), then the corresponding execute permission IS given.</li>
+        <li>The numeric form of chmod is needed to set these advanced bits.    </li>
+      </ul>
+      <blockquote>
+        <p align="center"><img src="images/Chapter11/10_15A_samplePermissions.jpg" width="570" height="209"><br>
+        <strong>Sample permissions in a UNIX system.</strong></p>
+      </blockquote>
+      <br>
+    </li>
+    <blockquote>&nbsp;    </blockquote>
+    <li>Windows adjusts files access through a simple GUI:  </li>
+  </ul>
+  <blockquote>
+    <p>&nbsp;</p>
+  </blockquote>
+  <p align="center"><img src="images/Chapter11/11_18_Windows7ACL.jpg" width="373" height="514"><br>
+    <strong>Figure 11.16 - Windows 7 access-control list management.</strong>
+  </p>
+  <p align="center">&nbsp;</p>
+  <h4>11.6.3 Other Protection Approaches and Issues </h4>
+  <ul>
+    <li>Some systems can apply passwords, either to individual files, or to specific sub-directories, or to the entire system. There is a trade-off between the number of passwords that must be maintained ( and remembered by the users ) and the amount of information that is vulnerable to a lost or forgotten password. </li>
+    <li>Older systems which did not originally have multi-user file access permissions ( DOS and older versions of Mac ) must now be <em><strong>retrofitted</strong></em> if they are to share files on a network.</li>
+    <li>Access to a file requires access to all the files along its path as well. In a cyclic directory structure, users may have different access to the same file accessed through different paths.</li>
+    <li>Sometimes just the knowledge of the existence of a file of a certain name is a security ( or privacy ) concern. Hence the distinction between the R and X bits on UNIX directories. </li>
+  </ul>
+</blockquote>
+<h3>11.7 Summary</h3>
+<p>&nbsp;                        </p>
+<p>&nbsp;        </p>
+</BODY>
+</HTML>

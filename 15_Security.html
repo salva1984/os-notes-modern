@@ -1,0 +1,652 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="Security course notes for operating systems.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: Security</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  Security
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Seventh Edition &quot;, Chapter 15
+</OL>
+
+<h3>Note:</h3>
+<ul>
+  <li>This is a brief one-chapter introduction to a very large and important topic. Students interested in the topic of Computer Security may want to consider following this course up with <a href="http://www1.cs.uic.edu/CSweb/public/courses.php?audience=public&label=Courses#487">CS 487- Building Trustworthy Computer Systems</a>, <a href="http://www1.cs.uic.edu/CSweb/public/courses.php?audience=public&label=Courses#587">CS 587 Computer Systems Security</a>, or <a href="http://www1.cs.uic.edu/CSweb/public/courses.php?audience=public&label=Courses#588">CS 588 Security and Privacy in Networked and Distributed Systems</a>. </li>
+</ul>
+<h3>15.1 The Security Problem</h3>
+<ul>
+  <li>Chapter 14 ( Protection ) dealt with protecting files and other resources from accidental misuse by cooperating users sharing a system, generally using the computer for normal purposes.</li>
+  <li>This chapter ( Security ) deals with protecting systems from deliberate attacks, either internal or external, from individuals intentionally attempting to steal information, damage information, or otherwise deliberately wreak havoc in some manner.</li>
+  <li>Some of the most common types of <em><strong>violations </strong></em>include:
+    <ul>
+      <li><strong><em>Breach of Confidentiality - </em></strong>Theft of private or confidential information, such as credit-card numbers, trade secrets, patents, secret formulas, manufacturing procedures, medical information, financial information, etc.</li>
+      <li><strong><em>Breach of Integrity - </em></strong>Unauthorized <em><strong>modification</strong></em> of data, which may have serious indirect consequences. For example a popular game or other program's source code could be modified to open up security holes on users systems before being released to the public.</li>
+      <li><strong><em>Breach of Availability - </em></strong>Unauthorized <em><strong>destruction</strong></em> of data, often just for the &quot;fun&quot; of causing havoc and for bragging rites. Vandalism of web sites is a common form of this violation.    </li>
+      <li><em><strong>Theft of Service - </strong></em>Unauthorized use of resources, such as theft of CPU cycles, installation of daemons running an unauthorized file server, or tapping into the target's telephone or networking services.</li>
+      <li><strong><em>Denial of Service, DOS - </em></strong>Preventing legitimate users from using the system, often by overloading and overwhelming the system  with an excess of requests for service. </li>
+    </ul>
+  </li>
+  <li>One common attack is <em><strong>masquerading, </strong></em>in which the attacker pretends to be a trusted third party. A variation of this is the <em><strong>man-in-the-middle, </strong></em>in which the attacker masquerades as both ends of the conversation to two targets.</li>
+  <li>A <em><strong>replay attack</strong></em> involves repeating a valid transmission. Sometimes this can be the entire attack, ( such as repeating a request for a money transfer ), or other times the content of the original message is replaced with malicious content. </li>
+</ul>
+<p align="center"><img src="images/Chapter15/15_01_StandardSecurityAttacks.jpg" width="770" height="1002"><br>
+  <strong>Figure 15.1 - Standard security attacks.</strong>
+</p>
+<ul>
+  <li>There are four levels at which a system must be protected:
+    <ol>
+      <li><strong>Physical - </strong>The easiest way to steal data is to pocket the backup tapes. Also, access to the root console will often give the user special privileges, such as rebooting the system as root from removable media. Even general access to terminals in a computer room offers some opportunities for an attacker, although today's modern high-speed networking environment provides more and more opportunities for remote attacks.</li>
+      <li><strong>Human - </strong>There is some concern that the humans who are allowed access to a system be trustworthy, and that they cannot be coerced into breaching security. However more and more attacks today are made via <em><strong>social engineering, </strong></em>which basically means fooling trustworthy people into accidentally breaching security.
+        <ul>
+          <li><strong>Phishing</strong> involves sending an innocent-looking e-mail or web site designed to fool people into revealing confidential information. E.g. spam e-mails pretending to be from e-Bay, PayPal, or any of a number of banks or credit-card companies.</li>
+          <li><strong>Dumpster Diving</strong> involves searching the trash or other locations for passwords that are written down. (&nbsp;Note: Passwords that are too hard to remember, or which must be changed frequently are more likely to be written down somewhere close to the user's station.&nbsp;)</li>
+          <li><strong>Password Cracking</strong> involves divining users passwords, either by watching them type in their passwords, knowing something about them like their pet's names, or simply trying all words in common dictionaries. (&nbsp;Note: &quot;Good&quot; passwords should involve a minimum number of characters, include non-alphabetical characters, and not appear in any dictionary (&nbsp;in any language&nbsp;), and should be changed frequently. Note also that it is proper etiquette to look away from the keyboard while someone else is entering their password.&nbsp;) </li>
+        </ul>
+      </li>
+    
+      <li><strong>Operating System - </strong>The OS must protect itself from security breaches, such as runaway processes (&nbsp;denial of service&nbsp;), memory-access violations, stack overflow violations, the launching of programs with excessive privileges, and many others.</li>
+      <li><strong>Network - </strong>As network communications become ever more important and pervasive in modern computing environments, it becomes ever more important to protect this area of the system. ( Both protecting the network itself from attack, and protecting the local system from attacks coming in through the network. ) This is a growing area of concern as wireless communications and portable devices become more and more prevalent.</li>
+    </ol>
+  </li>
+</ul>
+<h3>15.2 Program Threats</h3>
+<ul>
+  <li>There are many common threats to modern systems. Only a few are discussed here. </li>
+</ul>
+<blockquote>
+  <h4>15.2.1 Trojan Horse</h4>
+  <ul>
+    <li>A <em><strong>Trojan Horse</strong></em> is a program that secretly performs some maliciousness in addition to its visible actions.</li>
+    <li>Some Trojan horses are deliberately written as such, and others are the result of legitimate programs that have become infected with <em><strong>viruses, </strong></em>(&nbsp;see below.&nbsp;)</li>
+    <li>One dangerous opening for Trojan horses   is long search paths, and in particular paths which include the current directory ( &quot;.&quot; ) as part of the path. If a dangerous program having the same name as a legitimate program (&nbsp;or a common mis-spelling, such as &quot;sl&quot; instead of &quot;ls&quot;&nbsp;) is placed anywhere on the path, then an unsuspecting user may be fooled into running the wrong program by mistake.</li>
+    <li>Another classic Trojan Horse is a login emulator, which records a users account name and password, issues a &quot;password incorrect&quot; message, and then logs off the system. The user then tries again (&nbsp;with a proper login prompt&nbsp;), logs in successfully, and doesn't realize that their information has been stolen. </li>
+    <li><strong>( Special Note to UIC students: Beware that someone has registered the domain name of uic.EU (&nbsp;without the &quot;D&quot; ), and is running an ssh server which will accept requests to any machine in the domain, and gladly accept your login and password information, without, of course, actually logging you in. Access to this site is blocked from campus, but you are on your own off campus. ) </strong></li>
+    <li>Two solutions to Trojan Horses are to have the system print usage statistics on logouts, and to require the typing of non-trappable key sequences such as Control-Alt-Delete in order to log in. (&nbsp;This is why modern Windows systems require the Control-Alt-Delete sequence to commence logging in, which cannot be emulated or caught by ordinary programs. I.e. that key sequence always transfers control over to the operating system.&nbsp;)</li>
+    <li><strong><em>Spyware</em></strong> is a version of a Trojan Horse that is often included in &quot;free&quot; software downloaded off the Internet. Spyware programs generate pop-up browser windows, and may also accumulate information about the user and deliver it to some central site. ( This is an example of <em><strong>covert channels, </strong></em>in which surreptitious communications occur. ) Another common task of spyware is to send out spam e-mail messages, which then purportedly come from the infected user. </li>
+  </ul>
+  <h4>15.2.2 Trap Door</h4>
+  <ul>
+    <li>A<em><strong> Trap Door </strong></em>is when a designer or a programmer ( or hacker ) deliberately inserts a security hole that they can use later to access the system.</li>
+    <li>Because of the possibility of trap doors, once a system has been in an untrustworthy state, that system can never be trusted again. Even the backup tapes may contain a copy of some cleverly hidden back door. </li>
+    <li>A clever trap door could be inserted into a compiler, so that any programs compiled with that compiler would contain a security hole. This is especially dangerous, because inspection of the code being compiled would not reveal any problems. </li>
+  </ul>
+  <h4>15.2.3 Logic Bomb</h4>
+  <ul>
+    <li>A<em><strong> Logic Bomb </strong></em>is code that is not designed to cause havoc all the time, but only when a certain set of circumstances occurs, such as when a particular date or time is reached or some other noticeable event.</li>
+    <li>A classic example is the <em><strong>Dead-Man Switch</strong></em>, which is designed to check whether a certain person ( e.g. the author ) is logging in every day, and if they don't log in for a long time ( presumably because they've been fired ), then the logic bomb goes off and either opens up security holes or causes other problems.  </li>
+  </ul>
+  <h4>15.2.4 Stack and Buffer Overflow</h4>
+  <ul>
+    <li>This is a classic method of attack, which exploits bugs in system code that allows buffers to overflow. Consider what happens in the following code, for example, if argv[ 1 ] exceeds 256 characters:
+      <ul>
+        <li> The strcpy command will overflow the buffer, overwriting adjacent areas of memory.</li>
+        <li>( The problem could be avoided using str<em><strong>n</strong></em>cpy, with a limit of 255 characters copied plus room for the null byte. ) </li>
+      </ul>
+    </li>
+  </ul>
+  <table width="600" border="2" align="center", bgcolor="#FFFFFF"  >
+    <tr>
+      <td><pre>
+      
+      #include <stdio.h>
+      #define BUFFER_SIZE 256
+      
+      int main( int argc, char * argv[ ] )
+      {
+          char buffer[ BUFFER_SIZE ];
+          
+          if( argc < 2 )
+              return -1;
+          else {
+              strcpy( buffer, argv[ 1 ] );
+              return 0;
+          }
+      }
+      </pre> 
+      </td>
+    </tr>
+  </table>
+  <p align="center">
+    <strong>Figure 15.2 - C program with buffer-overflow condition.</strong>
+  </p>
+  <ul>
+    <li>So how does overflowing the buffer cause a security breach? Well the first step is to understand the structure of the stack in memory:
+      <ul>
+        <li>The &quot;bottom&quot; of the stack is actually at a high memory address, and the stack grows towards lower addresses.</li>
+        <li>However the address of an array is the lowest address of the array, and higher array elements extend to higher addresses. ( I.e. an array &quot;grows&quot; towards the bottom of the stack.</li>
+        <li>In particular, writing past the top of an array, as occurs when a buffer overflows with too much input data, can eventually overwrite the return address, effectively changing where the program jumps to when it returns.   </li>
+      </ul>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter15/15_03_TypicalStackFrame.jpg" width="511" height="312"><br>
+    <strong>Figure 15.3 - The layout for a typical stack frame.</strong>
+  </p>
+  <ul>
+    <li>Now that we know how to change where the program returns to by overflowing the buffer, the second step is to insert some nefarious code, and then get the program to jump to our inserted code.</li>
+    <li>Our only opportunity to enter code is via the input into the buffer, which means there isn't room for very much. One of the simplest and most obvious approaches is to insert the code for &quot;exec( /bin/sh )&quot;. To do this requires compiling a program that contains this instruction, and then using an assembler or debugging tool to extract the minimum extent that includes the necessary instructions.</li>
+    <li>The bad code is then padded with as many extra bytes as are needed to overflow the buffer to the correct extent, and the address of the buffer inserted into the return address location. (&nbsp;Note, however, that neither the bad code or the padding can contain null bytes, which would terminate the strcpy.&nbsp;)</li>
+    <li>The resulting block of information is provided as &quot;input&quot;, copied into the buffer by the original program, and then the return statement causes control to jump to the location of the buffer and start executing the code to launch a shell.  </li>
+  </ul>
+  <p align="center"><img src="images/Chapter15/15_04_StackFrame.jpg" width="631" height="437"><br>
+    <strong>Figure 15.4 - Hypothetical stack frame for Figure 15.2, (a) before and (b) after.</strong>
+  </p>
+  <ul>
+    <li>Unfortunately famous hacks such as the buffer overflow attack are well published and well known, and it doesn't take a lot of skill to follow the instructions and start attacking lots of systems until the law of averages eventually works out. (&nbsp;<em><strong>Script Kiddies</strong></em> are those hackers with only rudimentary skills of their own but the ability to copy the efforts of others.&nbsp;)</li>
+    <li>Fortunately modern hardware now includes a bit in the page tables to mark certain pages as non-executable. In this case the buffer-overflow attack would work up to a point, but as soon as it &quot;returns&quot; to an address in the data space and tries executing statements there, an exception would be thrown crashing the program.  </li>
+    <li>( More details about stack-overflow attacks are available on-line from <a href="http://www.insecure.org/stf/smashstack.txt">http://www.insecure.org/stf/smashstack.txt</a> ) </li>
+  </ul>
+  <h4>15.2.5 Viruses</h4>
+  <ul>
+    <li>A virus is a fragment of code embedded in an otherwise legitimate program, designed to replicate itself (&nbsp;by infecting other programs&nbsp;), and (&nbsp;eventually&nbsp;) wreaking havoc.</li>
+    <li>Viruses are more likely to infect PCs than UNIX or other multi-user systems, because programs in the latter systems have limited authority to modify other programs or to access critical system structures (&nbsp;such as the boot block.&nbsp;) </li>
+    <li>Viruses are delivered to systems in a <em><strong>virus dropper, </strong></em>usually some form of a Trojan Horse, and usually via e-mail or unsafe downloads. </li>
+    <li>Viruses take many forms (&nbsp;see below.&nbsp;) Figure 15.5 shows typical operation of a boot sector virus: </li>
+  </ul>
+  <p align="center"><img src="images/Chapter15/15_05_BootSectorVirus.jpg" width="763" height="801"><br>
+    <strong>Figure 15.5 - A boot-sector computer virus.</strong>
+  </p>
+  <ul>
+    <li>Some of the forms of viruses include:
+      <ul>
+        <li><strong>File - </strong>A file virus attaches itself to an executable file, causing it to run the virus code first and then jump to the start of the original program. These viruses are termed <em><strong>parasitic, </strong></em>because they do not leave any new files on the system, and the original program is still fully functional.</li>
+        <li><strong>Boot - </strong>A boot virus occupies the boot sector, and runs before the OS is loaded. These are also known as <em><strong>memory viruses</strong></em>, because in operation they reside in memory, and do not appear in the file system.</li>
+        <li><strong>Macro - </strong>These viruses exist as a macro (&nbsp;script&nbsp;) that are run automatically by certain macro-capable programs such as MS Word or Excel. These viruses can exist in word processing documents or spreadsheet files.</li>
+        <li><strong>Source code</strong> viruses look for source code and infect it in order to spread.</li>
+        <li><strong>Polymorphic </strong>viruses change every time they spread - Not their underlying functionality, but just their <em><strong>signature, </strong></em>by which virus checkers recognize them.</li>
+        <li><strong>Encrypted </strong>viruses travel in encrypted form to escape detection. In practice they are self-decrypting, which then allows them to infect other files.</li>
+        <li><strong>Stealth </strong>viruses try to avoid detection by modifying parts of the system that could be used to detect it. For example the read( ) system call could be modified so that if an infected file is read the infected part gets skipped and the reader would see the original unadulterated file.</li>
+        <li><strong>Tunneling</strong> viruses attempt to avoid detection by inserting themselves into the interrupt handler chain, or into device drivers.</li>
+        <li><strong>Multipartite</strong> viruses attack multiple parts of the system, such as files, boot sector, and memory.</li>
+        <li><strong>Armored </strong>viruses are coded to make them hard for anti-virus researchers to decode and understand. In addition many files associated with viruses are hidden, protected, or given innocuous looking names such as &quot;...&quot;.</li>
+      </ul>
+    </li>
+    <li>In 2004 a virus exploited three bugs in Microsoft products to infect hundreds of Windows servers ( including many trusted sites ) running Microsoft Internet Information Server, which in turn infected any Microsoft Internet Explorer web browser that visited any of the infected server sites. One of the back-door programs it installed was a <em><strong>keystroke logger, </strong></em>which records users keystrokes, including passwords and other sensitive information.  </li>
+    <li>There is some debate in the computing community as to whether a <em><strong>monoculture, </strong></em>in which nearly all systems run the same hardware, operating system, and applications, increases the threat of viruses and the potential for harm caused by them. </li>
+  </ul>
+</blockquote>
+<h3>15.3 System and Network Threats</h3>
+<ul>
+  <li>Most of the threats described above are termed <em><strong>program threats</strong></em>, because they attack specific programs or are carried and distributed in programs. The threats in this section attack the operating system or the network itself, or leverage those systems to launch their attacks.  </li>
+</ul>
+<blockquote>
+  <h4>15.3.1 Worms</h4>
+  <ul>
+    <li>A <em><strong>worm</strong></em> is a process that uses the fork / spawn process to make copies of itself in order to wreak havoc on a system. Worms consume system resources, often blocking out other, legitimate processes. Worms that propagate over networks can be especially problematic, as they can tie up vast amounts of network resources and bring down large-scale systems.</li>
+    <li>One of the most well-known worms was launched by Robert Morris, a graduate student at Cornell, in November 1988. Targeting Sun and VAX computers running BSD UNIX version 4, the worm spanned the Internet in a matter of a few hours, and consumed enough resources to bring down many systems.</li>
+    <li>This worm consisted of two parts:
+      <ol>
+        <li>A small program called a <em><strong>grappling hook, </strong></em>which was deposited on the target system through one of three vulnerabilities, and </li>
+        <li>The main worm program, which was transferred onto the target system and launched by the grappling hook program.  </li>
+      </ol>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter15/15_06_MorrisAttack.jpg" width="747" height="375"><br>
+    <strong>Figure 15.6 - The Morris Internet worm.</strong>
+  </p>
+  <ul>
+    <li>The three vulnerabilities exploited by the Morris Internet worm were as follows:
+      <ol>
+        <li><strong>rsh ( remote shell )</strong> is  a utility that was in common use at that time for accessing remote systems without having to provide a password. If a user had an account on two different computers (&nbsp;with the same account name on both systems&nbsp;), then the system could be configured to allow that user to remotely connect from one system to the other without having to provide a password. Many systems were configured so that <em><strong>any</strong></em> user (&nbsp;except root&nbsp;) on system A could access the same account on system B without providing a password.</li>
+        <li><strong>finger</strong> is a utility that allows one to remotely query a user database, to find the true name and other information for a given account name on a given system. For example &quot;finger joeUser@somemachine.edu&quot; would access the finger daemon at somemachine.edu and return information regarding joeUser. Unfortunately the finger daemon (&nbsp;which ran with system privileges&nbsp;) had the buffer overflow problem, so by sending a special 536-character user name the worm was able to fork a shell on the remote system running with root privileges.</li>
+        <li><strong>sendmail</strong> is a routine for sending and forwarding mail that also included a debugging option for verifying and testing the system. The debug feature was convenient for administrators, and was often left turned on. The Morris worm exploited the debugger to mail and execute a copy of the grappling hook program on the remote system.</li>
+      </ol>
+    </li>
+    <li>Once in place, the worm undertook systematic attacks to discover user passwords:
+      <ol>
+        <li>First it would check for accounts for which the account name and the password were the same, such as &quot;guest&quot;, &quot;guest&quot;.</li>
+        <li>Then it would try an internal dictionary of 432 favorite password choices. ( I'm sure &quot;password&quot;, &quot;pass&quot;, and blank passwords were all on the list. )   </li>
+        <li>Finally it would try every word in the standard UNIX on-line dictionary to try and break into user accounts.</li>
+      </ol>
+    </li>
+    <li>Once it had gotten access to one or more user accounts, then it would attempt to use those accounts to rsh to other systems, and continue the process. </li>
+    <li>With each new access the worm would check for already running copies of itself, and 6 out of 7 times if it found one it would stop. (&nbsp;The seventh was to prevent the worm from being stopped by fake copies.&nbsp;)</li>
+    <li>Fortunately the same rapid network connectivity that allowed the worm to propagate so quickly also quickly led to its demise - Within 24 hours remedies for stopping the worm propagated through the Internet from administrator to administrator, and the worm was quickly shut down. </li>
+    <li>There is some debate about whether Mr. Morris's actions were a harmless prank or research project that got out of hand or a deliberate and malicious attack on the Internet. However the court system convicted him, and penalized him  heavy fines and court costs.</li>
+    <li>There have since been many other worm attacks, including the W32.Sobig.F@mm attack which infected hundreds of thousands of computers and an estimated 1 in 17  e-mails in August 2003. This worm made detection difficult by varying the subject line of the infection-carrying mail message, including &quot;Thank You!&quot;, &quot;Your details&quot;, and &quot;Re: Approved&quot;. </li>
+  </ul>
+  <h4>15.3.2 Port Scanning</h4>
+  <ul>
+    <li><em><strong>Port Scanning</strong></em> is technically not an attack, but rather a search for vulnerabilities to attack. The basic idea is to systematically attempt to connect to every known ( or common or possible ) network port on some remote machine, and to attempt to make contact. Once it is determined that a particular computer is listening to a particular port, then the next step is to determine what daemon is listening, and whether or not it is a version containing a known security flaw that can be exploited.</li>
+    <li>Because port scanning is easily detected and traced, it is usually launched from <em><strong>zombie systems, </strong></em>i.e. previously hacked systems that are being used without the knowledge or permission of their rightful owner. For this reason it is important to protect &quot;innocuous&quot; systems and accounts as well as those that contain sensitive information or special privileges.  </li>
+    <li>There are also port scanners available that administrators can use to check their own systems, which report any weaknesses found but which do not exploit the weaknesses or cause any problems. Two such systems are <em><strong>nmap </strong></em>(&nbsp;<a href="http://www.insecure.org/nmap">http://www.insecure.org/nmap&nbsp;</a>) and <em><strong>nessus</strong></em> (&nbsp;<a href="http://www.nessus.org">http://www.nessus.org&nbsp;</a>). The former identifies what OS is found, what firewalls are in place, and what services   are listening to what ports. The latter also contains a database of known security holes, and identifies any that it finds. </li>
+  </ul>
+  <h4>15.3.3 Denial of Service</h4>
+  <ul>
+    <li><em><strong>Denial of Service ( DOS ) </strong></em>attacks do not attempt to actually access or damage systems, but merely to clog them up so badly that they cannot be used for any useful work. Tight loops that repeatedly request system services are an obvious form of this attack.</li>
+    <li>DOS attacks can also involve social engineering, such as the Internet chain letters that say &quot;send this immediately to 10 of your friends, and then go to a certain URL&quot;, which clogs up not only the Internet mail system but also the web server to which everyone is directed. ( Note: Sending a &quot;reply all&quot; to such a message notifying everyone that it was just a hoax also clogs up the Internet mail service, just as effectively as if you had forwarded the thing. )</li>
+    <li>Security systems that lock accounts after a certain number of failed login attempts are subject to DOS attacks which repeatedly attempt logins to all accounts with invalid passwords strictly in order to lock up all accounts.</li>
+    <li>Sometimes DOS is not the result of deliberate maliciousness. Consider for example:
+      <ul>
+        <li>A web site that sees a huge volume of hits as a result of a successful advertising campaign.</li>
+        <li>CNN.com occasionally gets overwhelmed on big news days, such as Sept 11, 2001.     </li>
+        <li>CS students given their first programming assignment involving fork( ) often quickly fill up process tables or otherwise completely consume system resources. :-) </li>
+        <li>(&nbsp;Please use ipcs and ipcrm when working on the inter-process communications assignment ! ) </li>
+      </ul>
+    </li>
+  </ul>
+</blockquote>
+<h3>15.4 Cryptography as a Security Tool</h3>
+<ul>
+  <li>Within a given computer the transmittal of messages is safe, reliable and secure, because the OS knows exactly where each one is coming from and where it is going.</li>
+  <li>On a network, however, things aren't so straightforward - A rogue computer ( or e-mail sender ) may spoof their identity, and outgoing packets are delivered to a lot of other computers besides their ( intended ) final destination, which brings up two big questions of security:
+    <ul>
+      <li><strong>Trust - </strong>How can the system be sure that the messages received are really from the source that they say they are, and can that source be trusted?</li>
+      <li><strong>Confidentiality - </strong>How can one ensure that the messages one is sending are received only by the intended recipient?</li>
+    </ul>
+  </li>
+  <li>Cryptography can help with both of these problems, through a system of <strong>secrets</strong> and <strong>keys.</strong> In the  former case, the key is held by the sender, so that the recipient knows that only the authentic author could have sent the message; In the latter, the key is held by the recipient, so that only the intended recipient can receive the message accurately.</li>
+  <li>Keys are designed so that they cannot be divined from any public information, and must be guarded carefully. ( <em><strong>Asymmetric encryption </strong></em> involve both a public and a private key. ) </li>
+</ul>
+<blockquote>
+  <h4>15.4.1 Encryption</h4>
+  <ul>
+    <li>The basic idea of encryption is to encode a message so that only the desired recipient can decode and read it. Encryption has been around since before the days of Caesar, and is an entire field of study in itself. Only some of the more significant computer encryption schemes will be covered here.</li>
+    <li>The basic process of encryption is shown in Figure 15.7, and will form the basis of most of our discussion on encryption. The steps in the procedure and some of the key terminology are as follows:
+      <ol>
+        <li>The <strong>sender</strong> first creates a <strong>message, m </strong>in plaintext.</li>
+        <li>The message is then entered into an <strong>encryption algorithm, E,</strong> along with the <strong>encryption key, Ke.</strong></li>
+        <li>The encryption algorithm generates the <strong>ciphertext, c, = E(Ke)(m).</strong> For any key k, E(k) is an algorithm for generating ciphertext from a message, and both E and E(k) should be  efficiently computable functions. </li>
+        <li>The ciphertext can then be sent over an unsecure network, where it may be received by <strong>attackers.</strong></li>
+        <li>The <strong>recipient</strong> enters the ciphertext into a <strong>decryption algorithm, D, </strong>along with the <strong>decryption key, Kd.</strong></li>
+        <li>The decryption algorithm re-generates    the plaintext message, m, = D(Kd)(c). For any key k, D(k) is an algorithm for generating a clear text message from a ciphertext, and both D and D(k) should be  efficiently computable functions.</li>
+        <li>The algorithms described here must have this important property: Given a ciphertext c, a computer can only compute a message m such that c = E(k)(m) if it possesses D(k). ( In other words, the messages can't be decoded unless you have the decryption algorithm and the decryption key. ) </li>
+      </ol>
+    </li>
+  </ul>
+  <p align="center"><img src="images/Chapter15/15_07_SecureComms.jpg" width="769" height="765"><br>
+    <strong>Figure 15.7 - A secure communication over an insecure medium.</strong>
+  </p>
+  <blockquote>
+    <h4>15.4.1.1 Symmetric Encryption</h4>
+    <ul>
+      <li>With<em><strong> symmetric encryption</strong></em> the same key is used for both encryption and decryption, and must be safely guarded. There are a number of well-known symmetric encryption algorithms that have been used for computer security:
+        <ul>
+          <li>The <em><strong>Data-Encryption Standard, DES, </strong></em>developed by the National Institute of Standards, NIST, has been a standard civilian encryption standard for over 20 years. Messages are broken down into 64-bit chunks, each of which are encrypted using a 56-bit key through a series of substitutions and transformations. Some of the transformations are hidden ( black boxes ), and are classified by the U.S. government. </li>
+          <li>DES is known as a <em><strong>block cipher, </strong></em>because it works on blocks of data at a time. Unfortunately this is a vulnerability if the same key is used for an extended amount of data. Therefore an enhancement is to not only encrypt each block, but also to XOR it with the previous block, in a technique known as <em><strong>cipher-block chaining.</strong></em></li>
+          <li>As modern computers become faster and faster, the security of DES has decreased, to where it is now considered insecure because its keys can be exhaustively searched within a reasonable amount of computer time. An enhancement called <em><strong>triple DES</strong></em> encrypts the data three times using three separate keys ( actually two encryptions and one decryption ) for an effective key length of 168 bits. Triple DES is in widespread use today.</li>
+          <li>The <em><strong>Advanced Encryption Standard, AES, </strong></em>developed by NIST in 2001 to replace DES uses key lengths of 128, 192, or 256 bits, and encrypts in blocks of 128 bits using 10 to 14 rounds of transformations on a matrix formed from the block. </li>
+          <li>The <em><strong>twofish algorithm, </strong></em>uses variable key lengths up to 256 bits and works on 128 bit blocks.</li>
+          <li><strong><em>RC5 </em></strong>can vary in key length, block size, and the number of transformations, and runs on a wide variety of CPUs using only basic computations.</li>
+          <li><strong><em>RC4 </em></strong>is a <em><strong>stream cipher, </strong></em>meaning it acts on a stream of data rather than blocks. The key is used to seed a pseudo-random number generator, which generates a <em><strong>keystream</strong></em> of keys. RC4 is used in <em><strong>WEP,</strong></em> but has been found to be breakable in a reasonable amount of computer time. </li>
+        </ul>
+      </li>
+    </ul>
+    <h4>15.4.1.2 Asymmetric Encryption</h4>
+    <ul>
+      <li>With <em><strong>asymmetric encryption, </strong></em>the decryption key, Kd, is not the same as the encryption key, Ke, and more importantly cannot be derived from it, which means the encryption key can be made publicly available, and only the decryption key needs to be kept secret. ( or vice-versa, depending on the application. )</li>
+      <li>One of the most widely used asymmetric encryption algorithms is<em><strong> RSA, </strong></em>named after its developers - Rivest, Shamir, and Adleman. </li>
+      <li>RSA is based on two large prime numbers, <strong><em>p </em></strong>and <em><strong>q, </strong></em>( on the order of 512 bits each ), and their product <em><strong>N.</strong></em>
+        <ul>
+          <li>Ke and Kd must satisfy the relationship:
+            <br>
+          ( Ke * Kd ) % [ ( p - 1 ) * ( q - 1 ) ] = = 1</li>
+          <li>The encryption algorithm is:<br>
+          c = E(Ke)(m) = m^Ke % N</li>
+          <li>The decryption algorithm is:<br>
+            m = D(Kd)(c) 
+            = c^Kd % N</li>
+        </ul>
+      </li>
+      <li>An example using small numbers:
+        <ul>
+          <li>p = 7</li>
+          <li>q = 13</li>
+          <li>N = 7 * 13 = 91     </li>
+          <li>( p - 1 ) * ( q - 1 ) = 6 * 12 = 72</li>
+          <li>Select Ke &lt; 72 and relatively prime to 72, say 5</li>
+          <li>Now select Kd, such that ( Ke * Kd ) % 72 = = 1, say 29</li>
+          <li>The public key is now ( 5, 91 ) and the private key is ( 29, 91 )</li>
+          <li>Let the message, m = 42</li>
+          <li>Encrypt: c = 42^5 % 91  = 35</li>
+          <li>Decrypt: m = 35^29 % 91 = 42  </li>
+        </ul>
+      </li>
+    </ul>
+    <p align="center"><img src="images/Chapter15/15_08_RSA_Asymmetric.jpg" width="412" height="765"><br>
+      <strong>Figure 15.8 - Encryption and decryption using RSA asymmetric cryptography</strong>
+    </p>
+    <ul>
+      <li>Note that asymmetric encryption is much more computationally expensive than symmetric encryption, and as such it is not normally used for large transmissions. Asymmetric encryption is suitable for small messages, authentication, and key distribution, as covered in the following sections. </li>
+    </ul>
+    <h4>15.4.1.3 Authentication</h4>
+    <ul>
+      <li>Authentication involves verifying the identity of the entity who transmitted a message.</li>
+      <li>For example, if D(Kd)(c) produces a valid message, then we know the sender was in possession of E(Ke).</li>
+      <li>This form of authentication can also be used to verify that a message has not been modified</li>
+      <li>Authentication revolves around two functions, used for <em><strong>signatures </strong></em>( or<em><strong> signing</strong></em> ), and <em><strong>verification:</strong></em>
+        <ul>
+          <li>A signing function, <em><strong>S(Ks)</strong></em> that produces an <em><strong>authenticator, A, </strong></em>from any given message m.</li>
+          <li>A Verification function, <em><strong>V(Kv,m,A)</strong></em> that produces a value of &quot;true&quot; if A was created from m, and &quot;false&quot; otherwise.</li>
+          <li>Obviously S and V must both be computationally efficient.</li>
+          <li>More importantly, it must not be possible to generate a valid authenticator, A, without having possession of S(Ks).</li>
+          <li>Furthermore, it must not be possible to divine S(Ks) from the combination of ( m and A ), since both are sent visibly across networks.</li>
+        </ul>
+      </li>
+      <li>Understanding authenticators begins with an understanding of hash functions, which is the first step:
+        <ul>
+          <li><em><strong>Hash functions, H(m)</strong></em> generate a small fixed-size block of data known as a <em><strong>message digest, </strong></em>or <em><strong>hash value</strong></em> from any given input data.      </li>
+          <li>For authentication purposes, the hash function must be <em><strong>collision resistant on m. </strong></em>That is it should not be reasonably possible to find an alternate message m' such that H(m') = H(m).</li>
+          <li>Popular hash functions are <strong>MD5, </strong>which generates a 128-bit message digest, and <strong>SHA-1, </strong>which generates a 160-bit digest.</li>
+        </ul>
+      </li>
+      <li>Message digests are useful for detecting ( accidentally ) changed messages, but are not useful as authenticators, because if the hash function is known, then someone could easily change the message and then generate a new hash value for the modified message. Therefore authenticators take things one step further by encrypting the message digest.</li>
+      <li>A <em><strong>message-authentication code, MAC, </strong></em>uses symmetric encryption and decryption of the message digest, which means that anyone capable of verifying an incoming message could also generate a new message.</li>
+      <li>An asymmetric approach is the <em><strong>digital-signature algorithm, </strong></em> which produces authenticators called <em><strong>digital signatures.</strong></em> In this case Ks and Kv are separate, Kv is the public key, and it is not practical to determine S(Ks) from public information.    In practice the sender of a message signs it ( produces a digital signature using S(Ks) ), and the receiver uses V(Kv) to verify that it did indeed come from a trusted source, and that it has not been modified.</li>
+      <li>There are three good reasons for having separate algorithms for encryption of messages and authentication of messages:
+        <ol>
+          <li>Authentication algorithms typically require fewer calculations, making verification a faster operation than encryption.</li>
+          <li>Authenticators are almost always smaller than the messages, improving space efficiency. (?)</li>
+          <li>Sometimes we want authentication only, and not confidentiality, such as when a vendor issues a new software patch.</li>
+        </ol>
+      </li>
+      <li>Another use of authentication is <em><strong>non-repudiation, </strong></em>in which a person filling out an electronic form cannot deny that they were the ones who did so.   </li>
+    </ul>
+    <h4>15.4.1.4 Key Distribution</h4>
+    <ul>
+      <li>Key distribution with symmetric cryptography is a major problem, because all keys must be kept secret, and they obviously can't be transmitted over unsecure channels. One option is to send them <em><strong>out-of-band, </strong></em>say via paper or a confidential conversation.</li>
+      <li>Another problem with symmetric keys, is that a separate key must be maintained and used for each correspondent with whom one wishes to exchange confidential information.</li>
+      <li>Asymmetric encryption solves some of these problems, because the public key can be freely transmitted through any channel, and the private key doesn't need to be transmitted anywhere. Recipients only need to maintain one private key for all incoming messages, though senders must maintain a separate public key for each recipient to which they might wish to send a message. Fortunately the public keys are not confidential, so this <em><strong>key-ring</strong></em> can be easily stored and managed.</li>
+      <li>Unfortunately there are still some security concerns regarding the public keys used in asymmetric encryption. Consider for example the following man-in-the-middle attack involving phony public keys:   </li>
+    </ul>
+    <p align="center"><img src="images/Chapter15/15_09_MiddleManAttack.jpg" width="673" height="813"><br>
+      <strong>Figure 15.9 - A man-in-the-middle attack on asymmetric cryptography.</strong>
+    </p>
+  </blockquote>
+  <ul>
+    <li>One solution to the above problem involves <em><strong>digital certificates, </strong></em>which are public keys that have been digitally signed by a trusted third party. But wait a minute - How do we trust that third party, and how do we know <em><strong>they</strong></em> are really who they say they are? Certain <em><strong>certificate authorities</strong></em> have their public keys included within web browsers and other certificate consumers before they are distributed. These certificate authorities can then vouch for other trusted entities and so on in a web of trust, as explained more fully in section 15.4.3. </li>
+  </ul>
+  <h4> 15.4.2 Implementation of Cryptography</h4>
+  <ul>
+    <li>Network communications are implemented in multiple layers - Physical, Data Link, Network, Transport, and Application being the most common breakdown.</li>
+    <li>Encryption and security can be implemented at any layer in the stack, with pros and cons to each choice:
+      <ul>
+        <li>Because packets at lower levels contain the contents of higher layers, encryption at lower layers automatically encrypts higher layer information at the same time.</li>
+        <li>However security and authorization may be important to higher levels independent of the underlying transport mechanism or route taken.</li>
+      </ul>
+    </li>
+    <li>At the network layer the most common standard is <strong>IPSec, </strong>a secure form of the IP layer, which is used to set up <strong>Virtual Private Networks, VPNs. </strong>    </li>
+    <li>At the transport layer the most common implementation is SSL, described below. </li>
+  </ul>
+  <h4>15.4.3 An Example: SSL 	</h4>
+  <ul>
+    <li>SSL ( &nbsp;Secure Sockets Layer&nbsp;) 3.0 was first developed by Netscape, and has now evolved into the industry-standard TLS protocol. It is used by web browsers to communicate securely with web servers, making it perhaps the most widely used security protocol on the Internet today.</li>
+    <li>SSL is quite complex with many variations, only a simple case of which is shown here.</li>
+    <li>The heart of SSL is <em><strong>session keys</strong></em>, which are used once for symmetric encryption and then discarded, requiring the generation of new keys for each new session. The big challenge is how to safely create such keys while avoiding man-in-the-middle and replay attacks.</li>
+    <li>Prior to commencing the transaction, the server obtains a <em><strong>certificate</strong></em> from a <em><strong>certification authority, CA, </strong></em>containing:
+      <ul>
+        <li>Server attributes such as unique and common names.</li>
+        <li>Identity of the public encryption algorithm, E( ), for the server.</li>
+        <li>The public key, k_e for the server.</li>
+        <li>The validity interval within which the certificate is valid.</li>
+        <li>A digital signature on the above issued by the CA:
+          <ul>
+            <li>a = S(K_CA )( ( attrs, E(k_e), interval )</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>In addition, the client will have obtained a public <em><strong>verification algorithm, </strong></em>V( K_CA ), for the certifying authority. Today's modern browsers include these built-in by the browser vendor for a number of trusted certificate authorities. </li>
+    <li>The procedure for establishing secure communications is as follows:
+      <ol>
+        <li>The client, c, connects to the server, s, and sends a random 28-byte number, n_c.</li>
+        <li>The server replies with its own random value, n_s, along with its certificate of authority. </li>
+        <li>The client uses its verification algorithm to confirm the identity of the sender, and if all checks out, then the client generates a 46 byte random <strong>premaster secret, pms, </strong>and sends an encrypted version of it as cpms = E(k_s)(pms)</li>
+        <li>The server recovers pms as D(k_s)(cpms).</li>
+        <li>Now both the client and the server can compute a shared 48-byte <em><strong>master secret, ms, </strong></em>= f( pms, n_s, n_c )</li>
+        <li>Next, both client and server generate the following from ms:
+          <ul>
+            <li>Symmetric encryption keys k_sc_crypt and k_cs_crypt for encrypting messages from the server to the client and vice-versa respectively.</li>
+            <li>MAC generation keys k_sc_mac and k_cs_mac for generating authenticators on messages from server to client and client to server respectively.</li>
+          </ul>
+        </li>
+        <li>To send a message to the server, the client sends: </li>
+        <ul>
+          <li>c = E(k_cs_crypt)(m, S(k_cs_mac) )( m ) ) )</li>
+        </ul>
+        <li>Upon receiving c, the server recovers:        </li>
+      </ol>
+      <ol>
+        <ul>
+          <li>(m,a) = D(k_cs_crypt)(c)</li>
+          <li>and accepts it if V(k_sc_mac)(m,a) is true.</li>
+        </ul>
+      </ol>
+    </li>
+    <li>This approach enables both the server and client to verify the authenticity of every incoming message, and to ensure that outgoing messages are only readable by the process that originally participated in the key generation.</li>
+    <li>SSL is the basis of many secure protocols,including<em><strong> Virtual Private Networks, VPNs, </strong></em>in which private data is distributed over the insecure public internet structure in an encrypted fashion that emulates a privately owned network. </li>
+  </ul>
+</blockquote>
+<h3>15.5 User Authentication</h3>
+<ul>
+  <li>A lot of chapter 14, Protection, dealt with making sure that only certain users were allowed to perform certain tasks, i.e. that a users privileges were dependent on his or her identity. But how does one verify that identity to begin with? </li>
+</ul>
+<blockquote>
+  <h4>15.5.1 Passwords </h4>
+  <ul>
+    <li>Passwords are the most common form of user authentication. If the user is in possession of the correct password, then they are considered to have identified themselves.</li>
+    <li>In theory separate passwords could be implemented for separate activities, such as reading this file, writing that file, etc. In practice most systems use one password to confirm user identity, and then authorization is based upon that identification. This is a result of the classic trade-off between security and convenience. </li>
+  </ul>
+  <h4>15.5.2 Password Vulnerabilities</h4>
+  <ul>
+    <li>Passwords can be guessed.
+      <ul>
+        <li>Intelligent guessing requires knowing something about the intended target in specific, or about people and commonly used passwords in general.</li>
+        <li>Brute-force guessing involves trying every word in the dictionary, or every valid combination of characters. For this reason good passwords should not be in any dictionary ( in any language ), should be reasonably lengthy, and should use the full range of allowable characters by including upper and lower case characters, numbers, and special symbols.</li>
+      </ul>
+    </li>
+    <li>&quot;Shoulder surfing&quot; involves looking over people's shoulders while they are typing in their password.
+      <ul>
+        <li>Even if the lurker does not get the entire password, they may get enough clues to narrow it down, especially if they watch on repeated occasions.</li>
+        <li>Common courtesy dictates that you look away from the keyboard while someone is typing their password.</li>
+        <li>Passwords echoed as stars or dots still give clues, because an observer can determine how many characters are in the password. :-(</li>
+      </ul>
+    </li>
+    <li>&quot;Packet sniffing&quot; involves putting a monitor on a network connection and reading data contained in those packets.
+      <ul>
+        <li>SSH encrypts all packets, reducing the effectiveness of packet sniffing.</li>
+        <li>However you should still never e-mail a password, particularly not with the word &quot;password&quot; in the same message or worse yet the subject header.</li>
+        <li>Beware of any system that transmits passwords in clear text. (&nbsp;&quot;Thank you for signing up for XYZ. Your new account and password information are shown below&quot;.&nbsp;) You probably want to have a spare throw-away password to give these entities, instead of using the same high-security password that you use for banking or other confidential uses. </li>
+      </ul>
+    </li>
+    <li>Long hard to remember passwords are often written down, particularly if they are used seldomly or must be changed frequently. Hence a security trade-off of passwords that are easily divined versus those that get written down. :-(</li>
+    <li>Passwords can be given away to friends or co-workers, destroying the integrity of the entire user-identification system.</li>
+    <li>Most systems have configurable parameters controlling password generation and what constitutes acceptable passwords.
+      <ul>
+        <li>They may be user chosen or machine generated.  </li>
+        <li>They may have minimum and/or maximum length requirements.</li>
+        <li>They may need to be changed with a given frequency. ( In extreme cases for every session. ) </li>
+        <li>A variable length history can prevent repeating passwords.</li>
+        <li>More or less stringent checks can be made against password dictionaries.</li>
+      </ul>
+    </li>
+  </ul>
+  <h4>15.5.3 Encrypted Passwords</h4>
+  <ul>
+    <li>Modern systems do not store passwords in clear-text form, and hence there is no mechanism to look up an existing password.</li>
+    <li>Rather they are encrypted and stored in that form. When a user enters their password, that too is encrypted, and if the encrypted version match, then user authentication passes.</li>
+    <li>The encryption scheme was once considered safe enough that the encrypted versions were stored in the publicly readable file &quot;/etc/passwd&quot;. 
+      <ul>
+        <li>They always encrypted to a 13 character string, so an account could be disabled by putting a string of any other length into the password field. </li>
+        <li>Modern computers can try every possible password combination in a reasonably short time, so now the encrypted passwords are stored in files that are only readable by the super user. Any password-related programs run as setuid root to get access to these files. (&nbsp;/etc/shadow&nbsp;)</li>
+        <li>A random seed is included as part of the password generation process, and stored as part of the encrypted password. This ensures that if two accounts have the same plain-text password that they will not have the same encrypted password. However cutting and pasting encrypted passwords from one account to another will give them the same plain-text passwords. </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>15.5.4 One-Time Passwords</h4>
+  <ul>
+    <li>One-time passwords resist shoulder surfing and other attacks where an observer is able to capture a password typed in by a user.
+      <ul>
+        <li>These are often based on a <strong>challenge</strong> and a <strong>response.</strong> Because the challenge is different each time, the old response will not be valid for future challenges.
+          <ul>
+            <li>For example, The user may be in possession of a secret function f( x ). The system challenges with some given value for x, and the user responds with f( x ), which the system can then verify. Since the challenger gives a different ( random ) x each time, the answer is constantly changing.</li>
+            <li>A variation uses a map ( e.g. a road map ) as the key. Today's question might be &quot;On what corner is SEO located?&quot;, and tomorrow's question might be &quot;How far is it from Navy Pier to Wrigley Field?&quot; Obviously &quot;Taylor and Morgan&quot; would not be accepted as a valid answer for the second question!</li>
+          </ul>
+        </li>
+        <li>Another option is to have some sort of electronic card with a series of constantly changing numbers, based on the current time. The user enters the current number on the card, which will only be valid for a few seconds. A <em><strong>two-factor authorization</strong></em> also requires a traditional password in addition to the number on the card, so others may not use it if it were ever lost or stolen.</li>
+        <li>A third variation is a <em><strong>code book, </strong></em>or <em><strong>one-time pad.</strong></em> In this scheme a long list of passwords is generated, and each one is crossed off and cancelled as it is used. Obviously it is important to keep the pad secure.    </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>15.5.5 Biometrics</h4>
+  <ul>
+    <li>Biometrics involve a physical characteristic of the user that is not easily forged or duplicated and not likely to be identical between multiple users.
+      <ul>
+        <li>Fingerprint scanners are getting faster, more accurate, and more economical.</li>
+        <li>Palm readers can check thermal properties, finger length, etc.</li>
+        <li>Retinal scanners examine the back of the users' eyes.</li>
+        <li>Voiceprint analyzers distinguish particular voices.</li>
+        <li>Difficulties may arise in the event of colds, injuries, or other physiological changes.      </li>
+      </ul>
+    </li>
+  </ul>
+</blockquote>
+<h3>15.6 Implementing Security Defenses</h3>
+<blockquote>
+  <h4>15.6.1 Security Policy</h4>
+  <ul>
+    <li>A security policy should be well thought-out, agreed upon, and contained in a living document that everyone adheres to and is updated as needed.</li>
+    <li>Examples of contents include how often port scans are run, password requirements, virus detectors, etc. </li>
+  </ul>
+  <h4>15.6.2 Vulnerability Assessment</h4>
+  <ul>
+    <li>Periodically examine the system to detect vulnerabilities.
+      <ul>
+        <li>Port scanning.</li>
+        <li>Check for bad passwords.</li>
+        <li>Look for suid programs.</li>
+        <li>Unauthorized programs in system directories.</li>
+        <li>Incorrect permission bits set.</li>
+        <li>Program checksums / digital signatures which have changed.</li>
+        <li>Unexpected or hidden network daemons.</li>
+        <li>New entries in startup scripts, shutdown scripts, cron tables, or other system scripts or configuration files.    </li>
+        <li>New unauthorized accounts.</li>
+      </ul>
+    </li>
+    <li>The government considers a system to be only as secure as its most far-reaching component. Any system connected to the Internet is inherently less secure than one that is in a sealed room with no external communications.</li>
+    <li>Some administrators advocate &quot;security through obscurity&quot;, aiming to keep as much information about their systems hidden as possible, and not announcing any security concerns they come across. Others announce security concerns from the rooftops, under the theory that the hackers are going to find out anyway, and the only one kept in the dark by obscurity are honest administrators who need to get the word. </li>
+  </ul>
+  <h4>15.6.3 Intrusion Detection</h4>
+  <ul>
+    <li>Intrusion detection attempts to detect attacks, both successful and unsuccessful attempts. Different techniques vary along several axes:
+      <ul>
+        <li>The time that detection occurs, either during the attack or after the fact.</li>
+        <li>The types of information examined to detect the attack(s). Some attacks can only be detected by analyzing multiple sources of information.</li>
+        <li>The response to the attack, which may range from alerting an administrator to automatically stopping the attack ( e.g. killing an offending process&nbsp;), to tracing back the attack in order to identify the attacker.
+          <ul>
+            <li>Another approach is to divert the attacker to a    <em><strong>honeypot</strong></em>, on a <em><strong>honeynet.</strong></em> The idea behind a honeypot is a computer running normal services, but which no one uses to do any real work. Such a system should not see any network traffic under normal conditions, so any traffic going to or from such a system is by definition suspicious. Honeypots are normally kept on a honeynet protected by a <em><strong>reverse firewall, </strong></em>which will let potential attackers in to the honeypot, but will not allow any outgoing traffic. ( So that if the honeypot is compromised, the attacker cannot use it as a base of operations for attacking other systems. ) Honeypots are closely watched, and any suspicious activity carefully logged and investigated.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>Intrusion Detection Systems, IDSs, raise the alarm when they detect an intrusion. Intrusion Detection and Prevention Systems, IDPs, act as filtering routers, shutting down suspicious traffic when it is detected.</li>
+    <li>There are two major approaches to detecting problems:
+      <ul>
+        <li><strong><em>Signature-Based Detection   </em></strong>scans network packets, system files, etc. looking for recognizable characteristics of known attacks, such as text strings for messages or the binary code for &quot;exec&nbsp;/bin/sh&quot;. The problem with this is that it can only detect previously encountered problems for which the signature is known, requiring the frequent update of signature lists.</li>
+        <li><strong><em>Anomaly Detection</em></strong> looks for &quot;unusual&quot; patterns of traffic or operation, such as unusually heavy load or an unusual number of logins late at night.
+          <ul>
+            <li>The benefit of this approach is that it can detect previously unknown attacks, so called <em><strong>zero-day attacks. </strong></em> </li>
+            <li>One problem with this method is characterizing what is &quot;normal&quot; for a given system. One approach is to benchmark the system, but if the attacker is already present when the benchmarks are made, then the &quot;unusual&quot; activity is recorded as &quot;the norm.&quot;</li>
+            <li>Another problem is that not all changes in system performance are the result of security attacks. If the system is bogged down and really slow late on a Thursday night, does that mean that a hacker has gotten in and is using the system to send out SPAM, or does it simply mean that a CS 385 assignment is due on Friday? :-)</li>
+            <li>To be effective, anomaly detectors must have a very low <em><strong>false alarm ( false positive )</strong></em> rate, lest the warnings get ignored, as well as a low <em><strong>false negative</strong></em> rate in which attacks are missed.   </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>15.6.4 Virus Protection</h4>
+  <ul>
+    <li>Modern anti-virus programs are basically signature-based detection systems, which also have the ability (&nbsp;in some cases&nbsp;) of <em><strong>disinfecting</strong></em> the affected files and returning them back to their original condition.</li>
+    <li>Both viruses and anti-virus programs are rapidly evolving. For example viruses now commonly mutate every time they propagate, and so anti-virus programs look for families of related signatures rather than specific ones.</li>
+    <li>Some antivirus programs look for anomalies, such as an executable program being opened for writing (&nbsp;other than by a compiler.&nbsp;)</li>
+    <li>Avoiding bootleg, free, and shared software can help reduce the chance of catching a virus, but even shrink-wrapped official software has on occasion been infected by disgruntled factory workers.</li>
+    <li>Some virus detectors will run suspicious programs in a <em><strong>sandbox, </strong></em>an isolated and secure area of the system which mimics the real system.</li>
+    <li><strong><em>Rich Text Format, RTF, </em></strong>files cannot carry macros, and hence cannot carry Word macro viruses.</li>
+    <li>Known safe programs (&nbsp;e.g. right after a fresh install or after a thorough examination&nbsp;) can be digitally signed, and periodically the files can be re-verified against the stored digital signatures. (&nbsp;Which should be kept secure, such as on off-line write-only medium.&nbsp;)     </li>
+  </ul>
+  <h4>15.6.5 Auditing, Accounting, and Logging</h4>
+  <ul>
+    <li>Auditing, accounting, and logging records can also be used to detect anomalous behavior. </li>
+    <li>Some of the kinds of things that can be logged include authentication failures and successes, logins, running of suid or sgid programs, network accesses, system calls, etc. In extreme cases almost every keystroke and electron that moves can be logged for future analysis. (&nbsp;Note that on the flip side, all this detailed logging can also be used to analyze system performance. The down side is that the logging also <em>affects</em> system performance ( negatively! ), and so a Heisenberg effect applies. ) </li>
+    <li>&quot;The Cuckoo's Egg&quot; tells the story of how Cliff Stoll detected one of the early UNIX break ins when he noticed anomalies in the accounting records on a computer system being used by physics researchers. </li>
+  </ul>
+<h4>Tripwire Filesystem ( New Sidebar )</h4>
+  <ul>
+    <li>The tripwire filesystem monitors files and directories for changes, on the assumption that most intrusions eventually result in some sort of undesired or unexpected file changes.</li>
+    <li>The tw.config file indicates what directories are to be monitored, as well as what properties of each file are to be recorded. ( E.g. one may choose to monitor permission and content changes, but not worry about read access times. )</li>
+    <li>When first run, the selected properties for all monitored files are recorded in a database. Hash codes are used to monitor file contents for changes.</li>
+    <li>Subsequent runs report any changes to the recorded data, including hash code changes, and any newly created or missing files in the monitored directories.</li>
+    <li>For full security it is necessary to also protect the tripwire system itself, most importantly the database of recorded file properties. This could be saved on some external or write-only location, but that makes it harder to change the database when legitimate changes are made.</li>
+    <li>It is difficult to monitor files that are <em>supposed to </em> change, such as log files. The best tripwire can do in this case is to watch for anomalies, such as a log file that shrinks in size.</li>
+    <li>Free and commercial versions are available at <a href="http://tripwire.org">http://tripwire.org</a> and <a href="http://tripwire.com">http://tripwire.com</a>.</li>
+  </ul>
+</blockquote>
+<h3>15.7 Firewalling to Protect Systems and Networks</h3>
+<ul>
+  <li>Firewalls are devices ( or sometimes software ) that sit on the border between two security domains and monitor/log activity between them, sometimes restricting the traffic that can pass between them based on certain criteria.</li>
+  <li>For example a firewall router may allow HTTP: requests to pass through to a web server inside a company domain while not allowing telnet, ssh, or other traffic to pass through.</li>
+  <li>A common architecture is to establish a de-militarized zone, DMZ, which sort of sits &quot;between&quot; the company domain and the outside world, as shown below. Company computers can reach either the DMZ or the outside world, but outside computers can only reach the DMZ. Perhaps most importantly, the DMZ cannot reach any of the other company computers, so even if the DMZ is breached, the attacker cannot get to the rest of the company network. (&nbsp;In some cases the DMZ may have limited access to company computers, such as a web server on the DMZ that needs to query a database on one of the other company computers.&nbsp;)</li>
+</ul>
+<p align="center"><img src="images/Chapter15/15_10_DomainSeparation.jpg" width="742" height="463"><br>
+  <strong>Figure 15.10 - Domain separation via firewall.</strong>
+</p>
+<ul>
+  <li>Firewalls themselves need to be resistant to attacks, and unfortunately have several vulnerabilities:
+    <ul>
+      <li><strong><em>Tunneling, </em></strong>which involves encapsulating forbidden traffic inside of packets that are allowed.</li>
+      <li>Denial of service attacks addressed at the firewall itself.</li>
+      <li>Spoofing, in which an unauthorized host sends packets to the firewall with the return address of an authorized host.</li>
+    </ul>
+  </li>
+  <li>In addition to the common firewalls protecting a company internal network from the outside world, there are also some specialized forms of firewalls that have been recently developed:
+    <ul>
+      <li>A <em><strong>personal firewall</strong></em> is a software layer that protects an individual computer. It may be a part of the operating system or a separate software package.</li>
+      <li>An <em><strong>application proxy firewall</strong></em> understands the protocols of a particular service and acts as a stand-in (&nbsp;and relay&nbsp;) for the       particular service. For example, and SMTP proxy firewall would accept SMTP requests from the outside world, examine them for security concerns, and forward only the &quot;safe&quot; ones on to the real SMTP server behind the firewall.</li>
+      <li><strong><em>XML firewalls</em></strong> examine XML packets only, and reject ill-formed packets. Similar firewalls exist for other specific protocols.</li>
+      <li><strong><em>System call firewalls</em></strong> guard the boundary between user mode and system mode, and reject any system calls that violate security policies.   </li>
+    </ul>
+  </li>
+</ul>
+<h3>15.8 Computer-Security Classifications ( Optional )</h3>
+<ul>
+  <li>No computer system can be 100% secure, and attempts to make it so can quickly make it unusable.</li>
+  <li>However one can establish a level of trust to which one feels &quot;safe&quot; using a given computer system for particular security needs. </li>
+  <li>The U.S. Department of Defense's &quot;Trusted Computer System Evaluation Criteria&quot; defines four broad levels of trust, and sub-levels in some cases:
+    <ul>
+      <li>Level D is the least trustworthy, and encompasses all systems that do not meet any of the more stringent criteria. DOS and Windows 3.1 fall into level D, which has no user identification or authorization, and anyone who sits down has full access and control over the machine.</li>
+      <li>Level C1 includes user identification and authorization, and some means of controlling what users are allowed to access what files. It is designed for use by a group of mostly cooperating users, and describes most common UNIX systems.</li>
+      <li>Level C2 adds individual-level control and monitoring. For example file access control can be allowed or denied on a per-individual basis, and the system administrator can monitor and log the activities of specific individuals. Another restriction is that when one user uses a system resource and then returns it back to the system, another user who uses the same resource later cannot read any of the information that the first user stored there. (&nbsp;I.e. buffers, etc. are wiped out between users, and are not left full of old contents.&nbsp;) Some special secure versions of UNIX have been certified for C2 security levels, such as SCO.</li>
+      <li>Level B adds sensitivity labels on each object in the system, such as &quot;secret&quot;, &quot;top secret&quot;, and &quot;confidential&quot;. Individual users have different clearance levels, which controls which objects they are able to access. All human-readable documents are labeled at both the top and bottom with the sensitivity level of the file.</li>
+      <li>Level B2 extends sensitivity labels to all system resources, including devices. B2 also supports covert channels and the auditing of events that could exploit covert channels.</li>
+      <li>B3 allows creation of access-control lists that denote users NOT given access to specific objects.</li>
+      <li>Class A is the highest level of security. Architecturally it is the same as B3, but it is developed using formal methods which can be used to <em><strong>prove</strong></em> that the system meets all  requirements       and cannot have any possible bugs or other vulnerabilities. Systems in class A and higher may be developed by trusted personnel in secure facilities.</li>
+      <li>These classifications determine what a system <em>can</em> implement, but it is up to security policy to determine <em>how</em> they are implemented in practice. These systems and policies can be reviewed and certified by trusted organizations, such as the National Computer Security Center. Other standards may dictate physical protections and other issues.    </li>
+    </ul>
+  </li>
+</ul>
+<h3>15.9 An Example: Windows XP ( Optional )</h3>
+<ul>
+  <li>Windows XP is a general purpose OS designed to support a wide variety of security features and methods. It is based on user accounts which can be grouped in any manner.</li>
+  <li>When a user logs on, a <em><strong>security access token</strong></em> is issued that includes the security ID for the user, security IDs for any groups of which the user is a member, and a list of any special privileges the user has, such as performing backups, shutting down the system, and changing the system clock.</li>
+  <li>Every process running on behalf of a user gets a copy of the users security token, which determines the privileges of that process running on behalf of that user.</li>
+  <li>Authentication is normally done via passwords, but the modular design of XP allows for alternative authentication such as retinal scans or fingerprint readers.</li>
+  <li>Windows XP includes built-in auditing that allows many common security threats to be monitored, such as successful and unsuccessful logins, logouts, attempts to write to executable files, and access to certain sensitive files.</li>
+  <li>Security attributes of objects are described by <em><strong>security descriptors</strong></em>, which include the ID of the owner, group ownership for POSIX subsystems only,  a discretionary access-control list describing exactly what permissions each user or group on the system has for this particular object, and auditing control information.   </li>
+  <li>The access control lists include for each specified user or group either AccessAllowed or AccessDenied for the following types of actions: ReadData,WriteData, AppendData, Execute, ReadAttributes, WriteAttributes, ReadExtendedAttribute, and WriteExtendedAttribute. </li>
+  <li><em><strong>Container objects</strong></em> such as directories can logically contain other objects. When a new object is created in a container or copied into a container, by default it inherits the permissions of the new container. <em><strong>Noncontainer objects</strong></em> inherit no other permissions. If the permissions of the container are changed later, that does not affect the permissions of the contained objects. </li>
+  <li>Although Windows XP is capable of supporting a secure system, many of the security features are not enabled by default, resulting in a fair number of security breaches on XP systems. There are also a large number of system daemons and other programs that start automatically at startup, whether the system administrator has thought about them or not.  (&nbsp;My system currently has 54 processes running, most of which I did not deliberately start and which have short cryptic names which makes it hard to divine exactly what they do or why. Faced with this situation, most users and administrators will simply leave alone anything they don't understand. ) </li>
+</ul>
+<h3>15.10 Summary</h3>
+<p>&nbsp;                               </p>
+</BODY>
+</HTML>

@@ -1,0 +1,307 @@
+<HTML>
+<HEAD>
+  <META CHARSET="utf-8">
+  <META NAME="viewport" CONTENT="width=device-width, initial-scale=1, viewport-fit=cover">
+  <META NAME="DESCRIPTION" CONTENT="Protection course notes for operating systems.">
+  <LINK REL="stylesheet" HREF="assets/site.css">
+  <SCRIPT SRC="assets/site.js" DEFER></SCRIPT>
+  <META NAME="GENERATOR" CONTENT="Adobe PageMill 3.0 Win">
+  <TITLE>Operating Systems: Protection</TITLE>
+  <style type="text/css">
+<!--
+.Courier {
+	font-family: Courier New, Courier, monospace;
+}
+-->
+  </style>
+</HEAD>
+<BODY BGCOLOR="#ffff80">
+
+<H1><CENTER>
+  Protection
+</CENTER></H1>
+
+<H3>References:</H3>
+
+<OL>
+  <LI>Abraham Silberschatz, Greg Gagne, and Peter Baer Galvin, &quot;Operating System Concepts, Ninth Edition &quot;, Chapter 14
+</OL>
+
+<h3>14.1 Goals of Protection</h3>
+<ul>
+  <li>Obviously to prevent malicious misuse of the system by users or programs. See chapter 15 for a more thorough coverage of this goal.</li>
+  <li>To ensure that each shared resource is used only in accordance with system <em>policies, </em>which may be set either by system designers or by system administrators.</li>
+  <li>To ensure that errant programs cause the minimal amount of damage possible.</li>
+  <li>Note that protection systems only provide the <em>mechanisms</em> for enforcing policies and ensuring reliable systems. It is up to administrators and users to implement those mechanisms effectively.     </li>
+</ul>
+<h3>14.2 Principles of Protection</h3>
+<ul>
+  <li>The <em><strong>principle of least privilege </strong></em>dictates that programs, users, and systems be given just enough privileges to perform their tasks. </li>
+  <li>This ensures that failures do the least amount of harm and allow the least of harm to be done.</li>
+  <li>For example, if a program needs special privileges to perform a task, it is better to make it a SGID program with group ownership of &quot;network&quot; or &quot;backup&quot; or some other pseudo group, rather than SUID with root ownership. This limits the amount of damage that can occur if something goes wrong.</li>
+  <li>Typically each user is given their own account, and has only enough privilege to modify their own files.</li>
+  <li>The root account should not be used for normal day to day activities - The System Administrator should also have an ordinary account, and reserve use of the root account for only those tasks which need the root privileges   </li>
+</ul>
+<h3>14.3 Domain of Protection</h3>
+<ul>
+  <li>A computer can be viewed as a collection of <em>processes</em> and <em>objects</em> ( both HW &amp; SW ). </li>
+  <li>The <em><strong>need to know principle</strong></em> states that a process should only have access to those objects it needs to accomplish its task, and furthermore only in the modes for which it needs access and only during the time frame when it needs access.</li>
+  <li>The modes available for a particular object may depend upon its type.  </li>
+</ul>
+<blockquote>
+  <h4>14.3.1 Domain Structure</h4>
+  <ul>
+    <li>A <em><strong>protection domain </strong></em>specifies the resources that a process may access.</li>
+    <li>Each domain defines a set of objects and the types of operations that may be invoked on each object. </li>
+    <li>An <em><strong>access right</strong></em> is the ability to execute an operation on an object.</li>
+    <li>A domain is defined as a set of &lt; object, { access right set } &gt; pairs, as shown below. Note that some domains may be disjoint while others overlap. </li>
+  </ul>
+  <p align="center"><img src="images/Chapter14/14_01_ThreeDomains.jpg" width="724" height="173"><br>
+    <strong>Figure 14.1 - System with three protection domains.</strong>
+  </p>
+  <ul>
+    <li>The association between a process and a domain may be <em>static </em>or <em>dynamic.</em>
+      <ul>
+        <li>If the association is static, then the need-to-know principle requires a way of changing the contents of the domain dynamically.</li>
+        <li>If the association is dynamic, then there needs to be a mechanism for <em><strong>domain switching.</strong></em></li>
+      </ul>
+    </li>
+    <li>Domains may be realized in different fashions - as users, or as processes, or as procedures. E.g. if each user corresponds to a domain, then that domain defines the access of that user, and changing domains involves changing user ID. </li>
+  </ul>
+  <h4>14.3.2 An Example: UNIX</h4>
+  <ul>
+    <li>UNIX associates domains with users.</li>
+    <li>Certain programs operate with the SUID bit set, which effectively changes the user ID, and therefore the access domain,  while the program is running. (&nbsp;and similarly for the SGID bit.&nbsp;) Unfortunately this has some potential for abuse.</li>
+    <li>An alternative used on some systems is to place privileged programs in special directories, so that they attain the identity of the directory owner when they run. This prevents crackers from placing SUID programs in random directories around the system.</li>
+    <li>Yet another alternative is to not allow the changing of ID at all. Instead, special privileged daemons   are launched at boot time, and user processes send messages to these daemons when they need special tasks performed. </li>
+  </ul>
+  <h4>14.3.3 An Example: MULTICS</h4>
+  <ul>
+    <li>The MULTICS system uses a complex system of rings, each corresponding to a different protection domain, as shown below: </li>
+  </ul>
+  <p align="center"><img src="images/Chapter14/14_02_MULTICS_Rings.jpg" width="537" height="369"><br>
+    <strong>Figure 14.2 - MULTICS ring structure.</strong>
+  </p>
+  <ul>
+    <li>Rings are numbered from 0 to 7, with outer rings having a subset of the privileges of the inner rings. </li>
+    <li>Each file is a memory segment, and each segment description includes an entry that indicates the ring number associated with that segment, as well as read, write, and execute privileges.</li>
+    <li>Each process runs in a ring, according to the <em>current-ring-number, </em>a counter associated with each process.</li>
+    <li>A process operating in one ring can only access segments associated with higher (&nbsp;farther out&nbsp;) rings, and then only according to the access bits. Processes cannot access segments associated with lower rings.</li>
+    <li>Domain switching is achieved by a process in one ring calling upon a process operating in a lower ring, which is controlled by several factors stored with each segment descriptor:
+      <ul>
+        <li>An <em><strong>access bracket</strong></em>, defined by integers b1 &lt;= b2.</li>
+        <li>A <em><strong>limit</strong></em> b3 &gt; b2</li>
+        <li>A <em><strong>list of gates, </strong></em>identifying the entry points at which the segments may be called.</li>
+      </ul>
+    </li>
+    <li>If a process operating in ring i calls a segment whose bracket is such that b1 &lt;= i &lt;= b2, then the call succeeds and the process remains in ring i.</li>
+    <li>Otherwise a trap to the OS occurs, and is handled as follows:
+      <ul>
+        <li>If i &lt; b1, then the call is allowed, because we are transferring to a procedure with fewer privileges. However if any of the parameters being passed are of segments below b1, then they must be copied to an area accessible by the called procedure.</li>
+        <li>If i &gt; b2, then the call is allowed only if i &lt;= b3 and the call is directed to one of the entries on the list of gates.</li>
+      </ul>
+    </li>
+    <li>Overall this approach is more complex and less efficient than other protection schemes.</li>
+  </ul>
+</blockquote>
+<h3>14.4 Access Matrix</h3>
+<ul>
+  <li>The model of protection that we have been discussing can be viewed as an <em><strong>access matrix, </strong></em>in which columns represent different system resources and rows represent different protection domains. Entries within the matrix indicate what access that domain has to that resource. </li>
+</ul>
+<p align="center"><img src="images/Chapter14/14_03_AccessMatrix.jpg" width="510" height="276"><br>
+  <strong>Figure 14.3 - Access matrix.</strong>
+</p>
+<ul>
+  <li>Domain switching can be easily supported under this model, simply by providing &quot;switch&quot; access to other domains: </li>
+</ul>
+<p align="center"><img src="images/Chapter14/14_04_AccessMatrixDomains.jpg" width="665" height="276"><br>
+  <strong>Figure 14.4 - Access matrix of Figure 14.3 with domains as objects.</strong>
+</p>
+<ul>
+  <li>The ability to <em><strong>copy </strong></em> rights is denoted by an asterisk, indicating that processes in that domain have the right to copy that access within the same column, i.e. for the same object. There are two important variations:
+    <ul>
+      <li>If the asterisk is removed from the original access right, then the right is <em><strong>transferred, </strong></em>rather than being copied. This may be termed a <em><strong>transfer</strong></em> right as opposed to a <em><strong>copy</strong></em> right. </li>
+      <li>If only the right and not the asterisk is copied, then the access right is added to the new domain, but it may not be propagated further. That is the new domain does not also receive the right to copy the access. This may be termed a <em><strong>limited copy</strong></em> right, as shown in Figure 14.5 below: </li>
+    </ul>
+  </li>
+</ul>
+<p align="center"><img src="images/Chapter14/14_05_AccessMatrixCopy.jpg" width="473" height="499"><br>
+  <strong>Figure 14.5 - Access matrix with <em>copy</em> rights.</strong>
+</p>
+<ul>
+  <li>The <em><strong>owner</strong></em> right adds the privilege of adding new rights or removing existing ones: </li>
+</ul>
+<p align="center"><img src="images/Chapter14/14_06_AccessMatrixOwner.jpg" width="473" height="607"><br>
+  <strong>Figure 14.6 - Access matrix with <em>owner</em> rights.</strong>
+</p>
+<ul>
+  <li>Copy and owner rights only allow the modification of rights within a column. The addition of <em><strong>control rights</strong></em>, which only apply to domain objects, allow a process operating in one domain to affect the rights available in other domains. For example in the table below, a process operating in domain D2 has the right to control any of the rights in domain D4.  </li>
+</ul>
+<p align="center"><img src="images/Chapter14/14_07_ModifiedAccessMatrix.jpg" width="665" height="276"><br>
+  <strong>Figure 14.7 - Modified access matrix of Figure 14.4</strong>
+</p>
+<h3>14.5 Implementation of Access Matrix</h3>
+<blockquote>
+  <h4>14.5.1 Global Table</h4>
+  <ul>
+    <li>The simplest approach is one big global table with &lt; domain, object, rights &gt; entries.</li>
+    <li>Unfortunately this table is very large ( even if sparse ) and so cannot be kept in memory ( without invoking virtual memory techniques. )</li>
+    <li>There is also no good way to specify groupings - If everyone has access to some resource, then it still needs a separate entry for every domain. </li>
+  </ul>
+  <h4>14.5.2 Access Lists for Objects</h4>
+  <ul>
+    <li>Each column of the table can be kept as a list of the access rights for that particular object, discarding blank entries.</li>
+    <li>For efficiency a separate list of default access rights can also be kept, and checked first.  </li>
+  </ul>
+  <h4>14.5.3 Capability Lists for Domains </h4>
+  <ul>
+    <li>In a similar fashion, each row of the table can be kept as a list of the capabilities of that domain. </li>
+    <li>Capability lists are associated with each domain, but not directly accessible by the domain or any user process.</li>
+    <li>Capability lists are themselves protected resources, distinguished from other data in one of two ways:
+      <ul>
+        <li>A <em><strong>tag, </strong></em>possibly hardware implemented, distinguishing this special type of data. (&nbsp;other types may be floats, pointers, booleans, etc. )</li>
+        <li>The address space for a program may be split into multiple segments, at least one of which is inaccessible by the program itself, and used by the operating system for maintaining the process's access right capability list.  </li>
+      </ul>
+    </li>
+  </ul>
+  <h4>14.5.4 A Lock-Key Mechanism</h4>
+  <ul>
+    <li>Each resource has a list of unique bit patterns, termed locks.</li>
+    <li>Each domain has its own list of unique bit patterns, termed keys.</li>
+    <li>Access is granted if one of the domain's keys fits one of the resource's locks.</li>
+    <li>Again, a process is not allowed to modify its own keys.    </li>
+  </ul>
+  <h4>14.5.5 Comparison</h4>
+  <ul>
+    <li>Each of the methods here has certain advantages or disadvantages, depending on the particular situation and task at hand.</li>
+    <li>Many systems employ some combination of the listed methods.  </li>
+  </ul>
+</blockquote>
+<h3>14.6 Access Control</h3>
+<ul>
+  <li><em><strong>Role-Based Access Control, RBAC, </strong></em>assigns privileges to users, programs, or roles as appropriate, where &quot;privileges&quot; refer to the right to call certain system calls, or to use certain parameters with those calls.</li>
+  <li>RBAC supports the principle of least privilege, and reduces the susceptibility to abuse as opposed to SUID or SGID programs. </li>
+</ul>
+<p align="center"><img src="images/Chapter14/14_08_RoleBasedAccess.jpg" width="275" height="436"><br>
+  <strong>Figure 14.8 - Role-based access control in Solaris 10.</strong>
+</p>
+<h3>14.7 Revocation of Access Rights</h3>
+<ul>
+  <li>The need to revoke access rights dynamically raises several questions:
+    <ul>
+      <li>Immediate versus delayed - If delayed, can we determine when the revocation will take place?</li>
+      <li>Selective versus general - Does revocation of an access right to an object affect <em>all</em> users who have that right, or only some users?</li>
+      <li>Partial versus total - Can a subset of rights for an object be revoked, or are all rights revoked at once?</li>
+      <li>Temporary versus permanent - If rights are revoked, is there a mechanism for processes to re-acquire some or all of the revoked rights?</li>
+    </ul>
+  </li>
+  <li>With an access list scheme revocation is easy, immediate, and can be selective, general, partial, total, temporary, or permanent, as desired.</li>
+  <li>With capabilities lists the problem is more complicated, because access rights are distributed throughout the system. A few schemes that have been developed include:
+    <ul>
+      <li>Reacquisition - Capabilities are periodically revoked from each domain, which must then re-acquire them.</li>
+      <li>Back-pointers - A list of pointers is maintained from each object to each capability which is held for that object.</li>
+      <li>Indirection - Capabilities point to an entry in a global table rather than to the object. Access rights can be revoked by changing or invalidating the table entry, which may affect multiple processes, which must then re-acquire access rights to continue.</li>
+      <li>Keys - A unique bit pattern is associated with each capability when created, which can be neither inspected nor modified by the process.
+        <ul>
+          <li>A master key is associated with each object.</li>
+          <li>When a capability is created, its key is set to the object's master key.</li>
+          <li>As long as the capability's key matches the object's key, then the capabilities remain valid.</li>
+          <li>The object master key can be changed with the set-key command, thereby invalidating all current capabilities.</li>
+          <li>More flexibility can be added to this scheme by implementing a <em><strong>list</strong></em> of keys for each object, possibly in a global table.      </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+<h3>14.8 Capability-Based Systems ( Optional )</h3>
+<blockquote>
+  <h4>14.8.1 An Example: Hydra</h4>
+  <ul>
+    <li>Hydra is a capability-based system that includes both system-defined <em><strong>rights</strong></em> and user-defined rights. The interpretation of user-defined rights is up to the specific user programs, but the OS provides support for protecting access to those rights, whatever they may be</li>
+    <li>Operations on objects are defined procedurally, and those procedures are themselves protected objects, accessed indirectly through capabilities.</li>
+    <li>The names of user-defined procedures must be identified to the protection system if it is to deal with user-defined rights.</li>
+    <li>When an object is created, the names of operations defined on that object become <em><strong>auxiliary rights, </strong></em>described in a capability for an <em><strong>instance</strong></em> of the type. For a process to act on an object, the capabilities it holds for that object must contain the name of the operation being invoked. This allows access to be controlled on an instance-by-instance and process-by-process basis.</li>
+    <li>Hydra also allows <em><strong>rights amplification, </strong></em>in which a process is deemed to be <em><strong>trustworthy, </strong></em>and thereby allowed to act on any object corresponding to its parameters.</li>
+    <li>Programmers can make direct use of the Hydra protection system, using suitable libraries which are documented in appropriate reference manuals.   </li>
+  </ul>
+  <h4>14.8.2 An Example: Cambridge CAP System</h4>
+  <ul>
+    <li>The CAP system has two kinds of capabilities:
+      <ul>
+        <li><strong><em>Data capability, </em></strong>used to provide read, write, and execute access to objects. These capabilities are interpreted by microcode in the CAP machine.</li>
+        <li><strong><em>Software capability, </em></strong>is protected but not interpreted by the CAP microcode.   
+          <ul>
+            <li>Software capabilities are interpreted by protected (&nbsp;privileged ) procedures, possibly written by application programmers. </li>
+            <li>When a process executes a protected procedure, it temporarily gains the ability to read or write the contents of a software capability. </li>
+            <li>This leaves the interpretation of the software capabilities up to the individual subsystems, and limits the potential damage that could be caused by a faulty privileged procedure.</li>
+            <li>Note, however, that protected procedures only get access to software capabilities for the subsystem of which they are a part. Checks are made when passing software capabilities to protected procedures that they are of the correct type.</li>
+            <li>Unfortunately the CAP system does not provide libraries, making it harder for an individual programmer to use than the Hydra system. </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</blockquote>
+<h3>14.9 Language-Based Protection ( Optional )</h3>
+<ul>
+  <ul>
+    <li>As systems have developed, protection systems have become more powerful, and also more specific and specialized.</li>
+    <li>To refine protection even further requires putting protection capabilities into the hands of individual programmers, so that protection policies can be implemented on the application level, i.e. to protect resources in ways that are known to the specific applications but not to the more general operating system.</li>
+  </ul>
+</ul>
+<blockquote>
+  <h4>14.9.1 Compiler-Based Enforcement</h4>
+  <ul>
+    <li>In a compiler-based approach to protection enforcement, programmers directly specify the protection needed for different resources at the time the resources are declared.</li>
+    <li>This approach has several advantages:
+      <ol>
+        <li>Protection needs are simply declared, as opposed to a complex series of procedure calls.</li>
+        <li>Protection requirements can be stated independently of the support provided by a particular OS.</li>
+        <li>The means of enforcement need not be provided directly by the developer.</li>
+        <li>Declarative notation is natural, because access privileges are closely related to the concept of data types.</li>
+      </ol>
+    </li>
+    <li>Regardless of the means of implementation, compiler-based protection relies upon the underlying protection mechanisms provided by the underlying OS, such as the Cambridge CAP or Hydra systems.</li>
+    <li>Even if the underlying OS does not provide advanced protection mechanisms, the compiler can still offer some protection, such as treating memory accesses differently in code versus data segments. ( E.g. code segments cant be modified, data segments can't be executed. )</li>
+    <li>There are several areas in which compiler-based protection can be compared to kernel-enforced protection:
+      <ul>
+        <li><strong>Security.</strong> Security provided by the kernel offers better protection than that provided by a compiler. The security of the compiler-based enforcement is dependent upon the integrity of the compiler itself, as well as requiring that files not be modified after they are compiled. The kernel is in a better position to protect itself from modification, as well as protecting access to specific files. Where hardware support of individual memory accesses is available, the protection is stronger still.</li>
+        <li><strong>Flexibility.</strong> A kernel-based protection system is not as flexible to provide the specific protection needed by an individual programmer, though it may provide support which the programmer may make use of. Compilers are more easily changed and updated when necessary to change the protection services offered or their implementation.</li>
+        <li><strong>Efficiency. </strong>The most efficient protection mechanism is one supported by hardware and microcode. Insofar as software based protection is concerned, compiler-based systems have the advantage that many checks can be made off-line, at compile time, rather that during execution.</li>
+      </ul>
+    </li>
+    <li>The concept of incorporating protection mechanisms into programming languages is in its infancy, and still remains to be fully developed. However the general goal is to provide mechanisms for three functions:
+      <ol>
+        <li>Distributing capabilities safely and efficiently among customer processes. In particular a user process should only be able to access resources for which it was issued capabilities.</li>
+        <li>Specifying the <em><strong>type</strong></em> of operations a process may execute on a resource, such as reading or writing.</li>
+        <li>Specifying the <em><strong>order</strong></em> in which operations are performed on the resource, such as opening before reading.</li>
+      </ol>
+    </li>
+  </ul>
+  <h4>14.9.2 Protection in Java</h4>
+  <ul>
+    <li>Java was designed from the very beginning to operate in a distributed environment, where code would be executed from a variety of trusted and untrusted sources. As a result the Java Virtual Machine, JVM incorporates many protection mechanisms</li>
+    <li>When a Java program runs, it load up classes dynamically, in response to requests to instantiates objects of particular types. These classes may come from a variety of different sources, some trusted and some not, which requires that the protection mechanism be implemented at the resolution of individual classes, something not supported by the basic operating system.</li>
+    <li>As each class is loaded, it is placed into a separate protection domain. The capabilities of each domain depend upon whether the source URL is trusted or not, the presence or absence of any digital signatures on the class (&nbsp;Chapter 15&nbsp;), and a configurable policy file indicating which servers a particular user trusts, etc.</li>
+    <li>When a request is made to access a restricted resource in Java, ( e.g. open a local file ), some process on the current <em><strong>call stack</strong></em> must specifically assert a privilege to perform the operation. In essence this method <em><strong>assumes responsibility</strong></em> for the restricted access. Naturally the method must be part of a class which resides in a protection domain that includes the capability for the requested operation. This approach is termed <em><strong>stack inspection,</strong></em> and works like this:
+      <ul>
+        <li>When a caller may not be trusted, a method executes an access request within a <span class="Courier">doPrivileged( )</span> block, which is noted on the calling stack.</li>
+        <li>When access to a protected resource is requested, <span class="Courier">checkPermissions( )</span> inspects the call stack to see if a method has asserted the privilege to access the protected resource.
+<ul>
+            <li>If a suitable doPriveleged block is encountered on the stack before a domain in which the privilege is disallowed, then the request is granted.</li>
+            <li>If a domain in which the request is disallowed is encountered first, then the access is denied and a AccessControlException is thrown.</li>
+            <li>If neither is encountered, then the response is implementation dependent.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>In the example below the untrusted applet's call to <span class="Courier">get( )</span> succeeds, because the trusted URL loader asserts the privilege of opening the specific URL lucent.com. However when the applet tries to make a direct call to <span class="Courier">open(&nbsp;)</span> it fails, because it does not have privilege to access any sockets.</li>
+  </ul>
+  <p align="center"><img src="images/Chapter14/14_09_StackInspection.jpg" width="769" height="314"><br>
+    <strong>Figure 14.9 - Stack inspection.</strong>
+  </p>
+</blockquote>
+<h3>14.10 Summary</h3>
+<p>&nbsp;      </p>
+</BODY>
+</HTML>
