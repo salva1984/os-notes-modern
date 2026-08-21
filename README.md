@@ -1,6 +1,9 @@
 # Operating systems course notes, modernized
 
+View this site at: https://salva1984.github.io/os-notes-modern/
+
 This project updates the interface of John Bell's Operating Systems course notes for CS 385 at the University of Illinois Chicago.
+
 Original notes at: https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/
 ## Objective
 
