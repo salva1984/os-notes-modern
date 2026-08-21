@@ -1,7 +1,7 @@
 # Operating systems course notes, modernized
 
 This project updates the interface of John Bell's Operating Systems course notes for CS 385 at the University of Illinois Chicago.
-
+Original notes at: https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/
 ## Objective
 
 Make the original static notes easier to read and navigate on current desktop and mobile browsers. The shared interface adds a course map, chapter navigation, local chapter search, an outline, a reading-progress indicator, and a day and night theme.
