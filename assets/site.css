@@ -1,33 +1,28 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
-/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
- * genre: editorial · macrostructure: Index-First + Long Document · theme: Almanac
- * enrichment: none · nav: N3 side rail · footer: Ft4 dense colophon
- */
-
-/* All visual decisions live in tokens so the light and night themes share
-   the same spacing, type roles, and interaction states. */
+/* The notes are technical reference material. The UI stays quiet, high
+   contrast, and compact enough to support long study sessions. */
 :root {
-  --font-display: "Newsreader", ui-serif, Georgia, serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --color-paper: oklch(96.5% 0.012 88);
-  --color-paper-raised: oklch(98.2% 0.008 88);
-  --color-paper-muted: oklch(92.5% 0.014 88);
-  --color-rule: oklch(83% 0.014 88);
-  --color-rule-strong: oklch(68% 0.018 88);
-  --color-ink: oklch(22% 0.018 88);
-  --color-ink-soft: oklch(42% 0.018 88);
-  --color-ink-faint: oklch(56% 0.014 88);
-  --color-accent: oklch(48% 0.12 145);
-  --color-accent-soft: oklch(87% 0.045 145);
-  --color-focus: oklch(56% 0.15 145);
-  --color-code: oklch(28% 0.02 88);
-  --color-code-ink: oklch(93% 0.012 88);
-  --color-selection: oklch(82% 0.08 145);
+  --color-paper: oklch(98% 0.004 250);
+  --color-paper-raised: oklch(99.3% 0.002 250);
+  --color-paper-muted: oklch(94% 0.008 250);
+  --color-rule: oklch(82% 0.012 250);
+  --color-rule-strong: oklch(62% 0.018 250);
+  --color-ink: oklch(20% 0.025 250);
+  --color-ink-soft: oklch(37% 0.023 250);
+  --color-ink-faint: oklch(53% 0.018 250);
+  --color-accent: oklch(48% 0.16 250);
+  --color-accent-soft: oklch(89% 0.05 250);
+  --color-focus: oklch(54% 0.17 250);
+  --color-code: oklch(19% 0.025 250);
+  --color-code-ink: oklch(94% 0.008 250);
+  --color-selection: oklch(83% 0.08 250);
 
-  --shadow-whisper: 0 1px 2px oklch(20% 0.01 88 / 0.08);
+  --shadow-whisper: 0 1px 2px oklch(20% 0.01 250 / 0.08);
   --rule-hair: 1px;
   --radius-small: 0.25rem;
 
@@ -52,7 +47,8 @@
   --text-display: clamp(2.9rem, 6vw + 1rem, 5.25rem);
 
   --page-gutter: clamp(1rem, 4vw, 3.5rem);
-  --page-max: 90rem;
+  /* Keep the reading column narrow, but let the shell use wide screens. */
+  --page-max: 100rem;
   --read-measure: 70ch;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
@@ -70,21 +66,21 @@
 /* Night mode changes only the surface values. Layout and type stay identical
    so switching modes never changes the reading position. */
 body[data-theme="night"] {
-  --color-paper: oklch(16% 0.012 88);
-  --color-paper-raised: oklch(20% 0.014 88);
-  --color-paper-muted: oklch(24% 0.014 88);
-  --color-rule: oklch(32% 0.016 88);
-  --color-rule-strong: oklch(48% 0.016 88);
-  --color-ink: oklch(93% 0.012 88);
-  --color-ink-soft: oklch(76% 0.014 88);
-  --color-ink-faint: oklch(62% 0.014 88);
-  --color-accent: oklch(70% 0.105 145);
-  --color-accent-soft: oklch(30% 0.045 145);
-  --color-focus: oklch(74% 0.13 145);
-  --color-code: oklch(11% 0.012 88);
-  --color-code-ink: oklch(91% 0.012 88);
-  --color-selection: oklch(42% 0.08 145);
-  --shadow-whisper: 0 1px 2px oklch(5% 0.01 88 / 0.2);
+  --color-paper: oklch(15% 0.018 250);
+  --color-paper-raised: oklch(19% 0.02 250);
+  --color-paper-muted: oklch(23% 0.022 250);
+  --color-rule: oklch(33% 0.024 250);
+  --color-rule-strong: oklch(50% 0.03 250);
+  --color-ink: oklch(93% 0.01 250);
+  --color-ink-soft: oklch(77% 0.016 250);
+  --color-ink-faint: oklch(63% 0.02 250);
+  --color-accent: oklch(72% 0.13 250);
+  --color-accent-soft: oklch(29% 0.06 250);
+  --color-focus: oklch(76% 0.15 250);
+  --color-code: oklch(10% 0.016 250);
+  --color-code-ink: oklch(92% 0.01 250);
+  --color-selection: oklch(38% 0.09 250);
+  --shadow-whisper: 0 1px 2px oklch(5% 0.01 250 / 0.2);
 }
 
 /* Base document rules keep long notes readable and prevent accidental page
@@ -229,7 +225,6 @@ font {
 .site-brand {
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-sm);
   min-width: 0;
   color: var(--color-ink);
   font-family: var(--font-display);
@@ -239,15 +234,6 @@ font {
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
-}
-
-.site-brand__mark {
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .site-header__meta {
@@ -295,8 +281,7 @@ font {
   transform: translateY(1px);
 }
 
-/* Desktop notes use three zones: a thin chapter rail, the reading measure,
-   and a sticky outline. The outline collapses below the layout breakpoint. */
+/* Notes use two useful zones: the reading measure and a sticky outline. */
 .site-main {
   width: min(100%, var(--page-max));
   margin-inline: auto;
@@ -305,56 +290,9 @@ font {
 
 .reading-layout {
   display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr) minmax(12rem, 15rem);
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 16rem);
   gap: clamp(var(--space-lg), 4vw, var(--space-3xl));
   align-items: start;
-}
-
-.chapter-rail {
-  position: sticky;
-  top: 6rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  min-height: 20rem;
-  color: var(--color-ink-faint);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.chapter-rail__wordmark {
-  color: var(--color-ink);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  text-decoration: none;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
-
-.chapter-rail__rule {
-  width: 1px;
-  min-height: 3rem;
-  background: var(--color-rule-strong);
-}
-
-.chapter-rail__link {
-  color: var(--color-ink-soft);
-  text-decoration: none;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
-
-.chapter-rail__link:hover {
-  color: var(--color-accent);
-}
-
-.chapter-rail__current {
-  color: var(--color-accent);
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
 }
 
 .source-content {
@@ -372,16 +310,16 @@ font {
   color: var(--color-ink);
   font-family: var(--font-display);
   font-style: normal;
-  font-weight: 600;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .source-content h1 {
-  max-width: 12ch;
+  max-width: 16ch;
   margin: 0 0 var(--space-lg);
   font-size: var(--text-display);
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .source-content h1 center {
@@ -402,7 +340,7 @@ font {
 }
 
 .source-content h3 {
-  max-width: var(--read-measure);
+  max-width: none;
   margin: var(--space-3xl) 0 var(--space-md);
   padding-top: var(--space-md);
   border-top: var(--rule-hair) solid var(--color-rule);
@@ -416,8 +354,8 @@ font {
 }
 
 .source-content h4 {
-  max-width: var(--read-measure);
-  margin: var(--space-2xl) 0 var(--space-sm);
+  max-width: none;
+  margin: var(--space-xl) 0 var(--space-sm);
   font-size: var(--text-lg);
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -434,11 +372,10 @@ font {
 .source-content dd,
 .source-content dt,
 .source-content blockquote {
-  max-width: var(--read-measure);
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  line-height: 1.68;
-  font-variant-numeric: oldstyle-nums;
+  max-width: none;
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
 }
 
 .source-content p {
@@ -446,9 +383,9 @@ font {
 }
 
 .source-content > p:first-of-type {
-  max-width: 62ch;
-  font-size: 1.3rem;
-  line-height: 1.5;
+  max-width: none;
+  font-size: 1.0625rem;
+  line-height: 1.65;
 }
 
 .source-content li + li {
@@ -457,7 +394,7 @@ font {
 
 .source-content ul,
 .source-content ol {
-  max-width: var(--read-measure);
+  max-width: none;
   margin-block: var(--space-md);
   padding-inline-start: 1.4em;
 }
@@ -485,15 +422,17 @@ font {
 }
 
 .source-content blockquote {
-  margin: var(--space-xl) 0;
-  padding: var(--space-xs) 0 var(--space-xs) var(--space-lg);
-  border-inline-start: 2px solid var(--color-accent);
-  color: var(--color-ink-soft);
+  /* The legacy notes use blockquotes as structural wrappers, often nested,
+     rather than as quotations. Treating them as callouts creates false bars
+     and compounded indentation around ordinary course material. */
+  margin: var(--space-md) 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
 }
 
 .source-content blockquote blockquote {
   margin-block: var(--space-md);
-  border-inline-start-color: var(--color-rule-strong);
 }
 
 .source-content hr {
@@ -527,7 +466,7 @@ font {
 }
 
 .source-content pre {
-  max-width: var(--read-measure);
+  max-width: none;
   overflow-x: auto;
   margin-block: var(--space-lg);
   padding: var(--space-lg);
@@ -542,7 +481,7 @@ font {
 
 .source-content table {
   width: 100%;
-  max-width: var(--read-measure);
+  max-width: none;
   margin-block: var(--space-lg);
   border-collapse: collapse;
   font-family: var(--font-body);
@@ -611,7 +550,7 @@ font {
 }
 
 .source-content dl {
-  max-width: var(--read-measure);
+  max-width: none;
 }
 
 .source-content dt {
@@ -624,19 +563,33 @@ font {
   margin-inline-start: var(--space-lg);
 }
 
-/* These labels are generated by the shell. The note text below them remains
-   the original course material. */
-.note-kicker,
+/* Context is a compact horizontal breadcrumb, not a decorative chapter rail. */
+.note-context,
 .index-kicker {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
   margin-bottom: var(--space-md);
-  color: var(--color-accent);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   line-height: 1.4;
   text-transform: uppercase;
+}
+
+.index-kicker {
+  color: var(--color-accent);
+}
+
+.note-context a {
+  color: var(--color-accent);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .note-intro,
@@ -644,7 +597,7 @@ font {
   max-width: 58ch;
   margin: 0 0 var(--space-2xl);
   color: var(--color-ink-soft);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: clamp(1.2rem, 1.2vw + 0.8rem, 1.55rem);
   line-height: 1.45;
 }
@@ -671,7 +624,7 @@ font {
 
 .index-content > ul > li,
 .index-content > ol > li {
-  margin-block: var(--space-2xl);
+  margin-block: var(--space-xl);
   padding-top: var(--space-md);
   border-top: var(--rule-hair) solid var(--color-rule);
   font-family: var(--font-body);
@@ -685,8 +638,8 @@ font {
 .index-content > ul > li > ol,
 .index-content > ol > li > ul {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0 var(--space-xl);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   max-width: none;
   margin-top: var(--space-md);
   padding: 0;
@@ -700,8 +653,7 @@ font {
   min-width: 0;
   margin: 0;
   padding: var(--space-sm) 0;
-  border-bottom: var(--rule-hair) solid var(--color-rule);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 1.15rem;
   font-weight: 400;
   line-height: 1.25;
@@ -728,12 +680,11 @@ font {
 }
 
 .index-content h3 {
-  max-width: 18ch;
   margin-top: var(--space-3xl);
 }
 
 .index-content h4 {
-  max-width: 70ch;
+  max-width: none;
   padding: var(--space-md) var(--space-lg);
   border-inline-start: 2px solid var(--color-accent);
   background: var(--color-paper-muted);
@@ -810,7 +761,7 @@ font {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-lg);
-  max-width: 70ch;
+  max-width: none;
   margin-top: var(--space-4xl);
   padding-top: var(--space-lg);
   border-top: var(--rule-hair) solid var(--color-rule-strong);
@@ -843,7 +794,7 @@ font {
 
 .chapter-pagination strong {
   overflow-wrap: anywhere;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--text-md);
   font-weight: 600;
   line-height: 1.15;
@@ -869,7 +820,7 @@ font {
   color: var(--color-ink);
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .site-footer p,
@@ -940,7 +891,7 @@ font {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .search-dialog input {
@@ -994,7 +945,7 @@ font {
 }
 
 .search-results strong {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--text-md);
   font-weight: 600;
 }
@@ -1020,11 +971,11 @@ font {
 
 @media (max-width: 60rem) {
   .reading-layout {
-    grid-template-columns: 2.75rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .notes-toc {
-    grid-column: 2;
+    grid-column: 1;
     position: static;
     max-height: none;
     margin-top: var(--space-xl);
@@ -1033,9 +984,6 @@ font {
     border-inline-start: 0;
   }
 
-  .source-content h1 {
-    max-width: 15ch;
-  }
 }
 
 @media (max-width: 40rem) {
@@ -1070,31 +1018,6 @@ font {
 
   .reading-layout {
     display: block;
-  }
-
-  .chapter-rail {
-    position: static;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    min-height: 0;
-    margin-bottom: var(--space-2xl);
-  }
-
-  .chapter-rail__wordmark,
-  .chapter-rail__link,
-  .chapter-rail__current {
-    writing-mode: initial;
-    transform: none;
-  }
-
-  .chapter-rail__wordmark {
-    font-size: var(--text-xs);
-  }
-
-  .chapter-rail__rule {
-    width: 2rem;
-    min-height: 1px;
   }
 
   .source-content h1 {

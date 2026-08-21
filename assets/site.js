@@ -290,7 +290,7 @@ const addIndexIntro = (article) => {
   const intro = createElement(
     "p",
     "index-intro",
-    "A working index of John Bell's course notes for CS 385. Use the chapter list to move through the material, then return here when you need the map again."
+    "Start with Chapter 1 and continue in order, or open a chapter from the topic groups below. Use Search to jump to a chapter by subject and Course map to return here."
   );
   kicker.dataset.shellIntro = "true";
   intro.dataset.shellIntro = "true";
@@ -298,22 +298,16 @@ const addIndexIntro = (article) => {
   title.parentNode.insertBefore(intro, title.nextSibling);
 };
 
-// Add the chapter context without changing the original note prose.
+// Keep chapter navigation to one clear route back to the course index.
 const addChapterIntro = (article, chapter) => {
   const title = article.querySelector("h1");
   if (!title || !chapter || article.querySelector("[data-shell-intro]")) return;
 
-  const label = `Chapter ${formatChapterNumber(chapter.number)} / ${chapter.group}`;
-  const kicker = createElement("span", "note-kicker", label);
-  const intro = createElement(
-    "p",
-    "note-intro",
-    "Course notes arranged for a slower read. Follow the sections in order, or use the outline when you are reviewing a single idea."
-  );
-  kicker.dataset.shellIntro = "true";
-  intro.dataset.shellIntro = "true";
-  title.parentNode.insertBefore(kicker, title);
-  title.parentNode.insertBefore(intro, title.nextSibling);
+  const context = createElement("nav", "note-context");
+  context.setAttribute("aria-label", "Chapter context");
+  context.dataset.shellIntro = "true";
+  context.appendChild(createLink("index.html#course-index", "Back to index"));
+  title.parentNode.insertBefore(context, title);
 };
 
 // Header controls are shared by every document and stay usable without a
@@ -321,11 +315,7 @@ const addChapterIntro = (article, chapter) => {
 const buildHeader = () => {
   const header = createElement("header", "site-header");
   const inner = createElement("div", "site-header__inner");
-  const brand = createLink("index.html", "", "site-brand");
-  brand.append(
-    createElement("span", "site-brand__mark", "os / notes"),
-    createElement("span", "", "Operating systems")
-  );
+  const brand = createLink("index.html", "Operating systems notes", "site-brand");
 
   const controls = createElement("div", "site-header__meta");
   const nav = createElement("nav", "site-nav");
@@ -345,24 +335,6 @@ const buildHeader = () => {
   inner.append(brand, controls);
   header.appendChild(inner);
   return header;
-};
-
-// The rail gives long notes a fixed way back to the course map and a compact
-// indication of the current chapter.
-const buildRail = (chapter) => {
-  const rail = createElement("aside", "chapter-rail");
-  rail.setAttribute("aria-label", "Chapter navigation");
-  const wordmark = createLink("index.html", "OS / notes", "chapter-rail__wordmark");
-
-  const rule = createElement("span", "chapter-rail__rule");
-  rule.setAttribute("aria-hidden", "true");
-
-  const indexLink = createLink("index.html", "Index", "chapter-rail__link");
-
-  const currentLabel = chapter ? `Ch. ${chapter.number}` : "Note";
-  const current = createElement("span", "chapter-rail__current", currentLabel);
-  rail.append(wordmark, rule, indexLink, current);
-  return rail;
 };
 
 // Build the outline from h3 headings. h4 and lower headings stay in the prose
@@ -438,7 +410,7 @@ const buildFooter = () => {
     createElement(
       "p",
       "",
-      "Original course notes by John Bell for CS 385 at the University of Illinois Chicago. This interface keeps the source pages and figures, adds a reading shell, and has no build step or server dependency."
+      "The course material and figures are by John Bell for CS 385 at the University of Illinois Chicago. I did not write, revise, or claim authorship of that material. This project only modernizes the interface around the original static pages."
     )
   );
 
@@ -793,7 +765,7 @@ const buildPageShell = (context, article) => {
     const outline = buildChapterOutline(article);
     const pagination = buildPagination(context.chapter);
     if (pagination) article.appendChild(pagination);
-    layout.append(buildRail(context.chapter), article);
+    layout.appendChild(article);
     if (outline) layout.appendChild(outline);
     main.appendChild(layout);
   }
